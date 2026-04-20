@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { lawyerAPI } from '../api/axios';
 import { useToast } from '../components/ToastProvider';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Search, Clock3, CircleCheckBig, BriefcaseBusiness } from 'lucide-react';
 import './LawyerDashboard.css';
 
 export default function LawyerDashboardPage() {
@@ -15,6 +15,8 @@ export default function LawyerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [updatingRequestId, setUpdatingRequestId] = useState('');
+  const [requestFilter, setRequestFilter] = useState('all');
+  const [requestQuery, setRequestQuery] = useState('');
   const { addToast } = useToast();
   const blinkStopRef = useRef(null);
 
@@ -166,6 +168,36 @@ export default function LawyerDashboardPage() {
     window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const filteredRequests = useMemo(() => {
+    const normalizedQuery = requestQuery.trim().toLowerCase();
+
+    return requests.filter((item) => {
+      if (requestFilter === 'pending' && item.status !== 'pending') return false;
+      if (requestFilter === 'active' && !['accepted', 'in-progress'].includes(item.status)) return false;
+      if (requestFilter === 'closed' && !['completed', 'rejected', 'cancelled'].includes(item.status)) return false;
+
+      if (!normalizedQuery) return true;
+
+      const haystack = [
+        item.userId?.name,
+        item.issueSummary,
+        item.preferredMode,
+        item.status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(normalizedQuery);
+    });
+  }, [requestFilter, requestQuery, requests]);
+
+  const getStatusTone = (status) => {
+    if (['accepted', 'in-progress'].includes(status)) return 'status-pill-active';
+    if (status === 'pending') return 'status-pill-pending';
+    return 'status-pill-closed';
+  };
+
   if (loading) {
     return (
       <div className="lawyer-shell">
@@ -177,9 +209,12 @@ export default function LawyerDashboardPage() {
   return (
     <div className="lawyer-shell">
       <div className="lawyer-header">
-        <div>
+        <div className="lawyer-header-left">
           <h1 className="page-title">Lawyer Dashboard</h1>
           <p className="page-subtitle">Welcome {profile?.name || localStorage.getItem('legalmind_lawyer_name') || 'Lawyer'}</p>
+          <div className={`availability-pill availability-${profilePayload.availabilityStatus}`}>
+            Availability: {profilePayload.availabilityStatus}
+          </div>
         </div>
         <button className="outline-btn" onClick={handleLogout}>Logout</button>
       </div>
@@ -187,10 +222,10 @@ export default function LawyerDashboardPage() {
       {message && <p className="status-text">{message}</p>}
 
       <div className="lawyer-stats-grid">
-        <div className="glass-card lawyer-card"><h3>Total Requests</h3><p>{stats?.totalRequests || 0}</p></div>
-        <div className="glass-card lawyer-card"><h3>Pending</h3><p>{stats?.pendingRequests || 0}</p></div>
-        <div className="glass-card lawyer-card"><h3>Accepted</h3><p>{stats?.acceptedRequests || 0}</p></div>
-        <div className="glass-card lawyer-card"><h3>Completed</h3><p>{stats?.completedRequests || 0}</p></div>
+        <div className="glass-card lawyer-card stat-card stat-all"><h3><BriefcaseBusiness size={16} /> Total Requests</h3><p>{stats?.totalRequests || 0}</p></div>
+        <div className="glass-card lawyer-card stat-card stat-pending"><h3><Clock3 size={16} /> Pending</h3><p>{stats?.pendingRequests || 0}</p></div>
+        <div className="glass-card lawyer-card stat-card stat-active"><h3><CheckCircle2 size={16} /> Accepted</h3><p>{stats?.acceptedRequests || 0}</p></div>
+        <div className="glass-card lawyer-card stat-card stat-complete"><h3><CircleCheckBig size={16} /> Completed</h3><p>{stats?.completedRequests || 0}</p></div>
       </div>
 
       <div className="lawyer-grid">
@@ -213,13 +248,32 @@ export default function LawyerDashboardPage() {
         </section>
 
         <section className="glass-card lawyer-card">
-          <h2 className="section-heading">Consultation Requests</h2>
+          <div className="requests-head">
+            <h2 className="section-heading">Consultation Requests</h2>
+            <div className="request-filter-row">
+              <button className={`filter-chip ${requestFilter === 'all' ? 'chip-active' : ''}`} onClick={() => setRequestFilter('all')}>All</button>
+              <button className={`filter-chip ${requestFilter === 'pending' ? 'chip-active' : ''}`} onClick={() => setRequestFilter('pending')}>Pending</button>
+              <button className={`filter-chip ${requestFilter === 'active' ? 'chip-active' : ''}`} onClick={() => setRequestFilter('active')}>Active</button>
+              <button className={`filter-chip ${requestFilter === 'closed' ? 'chip-active' : ''}`} onClick={() => setRequestFilter('closed')}>Closed</button>
+            </div>
+            <label className="request-search-wrap" htmlFor="request-search">
+              <Search size={15} />
+              <input
+                id="request-search"
+                className="request-search"
+                placeholder="Search by client, status, mode..."
+                value={requestQuery}
+                onChange={(e) => setRequestQuery(e.target.value)}
+              />
+            </label>
+          </div>
           <div className="requests-list">
-            {requests.length === 0 && <p className="empty-text">No requests found</p>}
-            {requests.map((item) => (
+            {filteredRequests.length === 0 && <p className="empty-text">No requests found for selected filter</p>}
+            {filteredRequests.map((item) => (
               <div className="request-item" key={item._id}>
                 <p className="request-title">
-                  {item.userId?.name || 'User'} | {item.status}
+                  {item.userId?.name || 'User'}
+                  <span className={`status-pill ${getStatusTone(item.status)}`}>{item.status}</span>
                   {item.unreadCount > 0 && <span className="unread-pill">{item.unreadCount} new</span>}
                 </p>
                 <p className="request-summary">{item.issueSummary}</p>

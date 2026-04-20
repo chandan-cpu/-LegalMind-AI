@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, FileText, Clock, Bot, User, Sparkles,Mic , MicOff } from 'lucide-react';
+import { Send, FileText, Bot, User, Mic, MicOff, CheckCheck, ShieldCheck } from 'lucide-react';
 import { io } from 'socket.io-client';
 import Sidebar from '../components/Sidebar';
 import { documentsAPI } from '../api/axios';
 import { useToast } from '../components/ToastProvider';
 import './Chat.css';
+
+const formatTime = (iso) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 export default function ChatPage() {
   const { addToast } = useToast();
@@ -16,6 +22,7 @@ export default function ChatPage() {
       role: 'assistant',
       text: 'Hello! I\'m your AI legal assistant. Select a document and ask me any questions about its contents. I\'ll provide answers with specific citations.',
       sources: [],
+      time: new Date().toISOString(),
     },
   ]);
   const [input, setInput] = useState('');
@@ -84,6 +91,7 @@ export default function ChatPage() {
           text: payload?.message || 'Something went wrong during realtime chat.',
           sources: [],
           confidence: 0,
+          time: new Date().toISOString(),
         },
       ]);
     });
@@ -97,6 +105,7 @@ export default function ChatPage() {
           text: payload?.answer || 'No answer generated.',
           sources: payload?.sources || [],
           confidence: payload?.confidence || 0,
+          time: new Date().toISOString(),
         },
       ]);
     });
@@ -157,7 +166,7 @@ export default function ChatPage() {
     const question = input.trim();
     const clientMessageId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: question }]);
+    setMessages(prev => [...prev, { role: 'user', text: question, time: new Date().toISOString() }]);
     setLoading(true);
 
     socketRef.current.emit('chat:message', {
@@ -193,8 +202,20 @@ export default function ChatPage() {
 
         <div className="chat-area">
           <div className="chat-header glass">
-            <FileText size={18} className="chat-header-icon" />
-            <span>{activeDocName}</span>
+            <div className="chat-header-avatar">
+              <Bot size={18} />
+            </div>
+            <div className="chat-header-meta">
+              <p className="chat-header-title">LegalMind Assistant</p>
+              <p className="chat-header-subtitle">
+                <ShieldCheck size={14} />
+                {socketReady ? 'Encrypted realtime connection' : 'Connecting...'}
+              </p>
+            </div>
+            <div className="chat-header-doc">
+              <FileText size={16} className="chat-header-icon" />
+              <span>{activeDocName}</span>
+            </div>
           </div>
 
           <div className="chat-messages">
@@ -212,6 +233,10 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
+                  <div className="bubble-meta">
+                    <span>{formatTime(msg.time)}</span>
+                    {msg.role === 'user' && <CheckCheck size={14} />}
+                  </div>
                 </div>
               </div>
             ))}
@@ -220,13 +245,14 @@ export default function ChatPage() {
                 <div className="bubble-avatar"><Bot size={18} /></div>
                 <div className="bubble-content">
                   <div className="typing-indicator"><span /><span /><span /></div>
+                  <div className="bubble-meta"><span>typing...</span></div>
                 </div>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-                   <div className="chat-input-bar glass">
+          <div className="chat-input-bar glass">
             <input
               type="text"
               className="chat-input"
@@ -236,26 +262,15 @@ export default function ChatPage() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               disabled={documents.length === 0}
             />
-            
-            {/* 👇 YAHAN BAACHO-BEECH MIC BUTTON LAGA DIYA 👇 */}
-            <button 
-              type="button" 
-              onClick={handleVoiceInput} 
-              style={{ 
-                background: isListening ? '#ff4757' : 'transparent', 
-                color: isListening ? 'white' : 'var(--text-secondary)', 
-                border: 'none', 
-                padding: '10px', 
-                borderRadius: '50%',
-                marginRight: '10px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
+
+            <button
+              type="button"
+              className={`voice-btn ${isListening ? 'voice-btn-live' : ''}`}
+              onClick={handleVoiceInput}
               disabled={documents.length === 0}
             >
               {isListening ? <MicOff size={22} /> : <Mic size={22} />}
             </button>
-            {/* 👆 MIC BUTTON KHATAM 👆 */}
 
             <button className="gradient-btn send-btn" onClick={handleSend} disabled={loading || documents.length === 0}>
               <Send size={18} />

@@ -1,60 +1,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
-/* ===== DESIGN SYSTEM: Juris Obsidian ===== */
+/* ===== DESIGN SYSTEM: LegalMind Light ===== */
 :root {
   /* Surface Colors */
-  --bg: #090909;
-  --surface: #0b0d1c;
-  --surface-dim: #0b0d1c;
-  --surface-container-lowest: #000000;
-  --surface-container-low: #101223;
-  --surface-container: #16182a;
-  --surface-container-high: #1c1e32;
-  --surface-container-highest: #21243a;
-  --surface-bright: #272a42;
-  --surface-variant: #21243a;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-dim: #f1f5f9;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f8fafc;
+  --surface-container: #f1f5f9;
+  --surface-container-high: #eef2f7;
+  --surface-container-highest: #ffffff;
+  --surface-bright: #ffffff;
+  --surface-variant: #e2e8f0;
 
   /* Primary */
-  --primary: #a8a4ff;
-  --primary-dim: #675df9;
-  --primary-container: #9995ff;
-  --primary-fixed: #9995ff;
+  --primary: #2563eb;
+  --primary-dim: #1d4ed8;
+  --primary-container: #60a5fa;
+  --primary-fixed: #93c5fd;
 
   /* Secondary */
-  --secondary: #aa8ffd;
-  --secondary-container: #4e329b;
+  --secondary: #0ea5e9;
+  --secondary-container: #dbeafe;
 
   /* Tertiary */
-  --tertiary: #ff9dd0;
-  --tertiary-container: #fb88c6;
+  --tertiary: #14b8a6;
+  --tertiary-container: #ccfbf1;
 
   /* Text */
-  --on-bg: #e6e6fc;
-  --on-surface: #e6e6fc;
-  --on-surface-variant: #a9a9be;
-  --on-primary: #1e009f;
+  --on-bg: #0f172a;
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  --on-primary: #ffffff;
 
   /* Outline */
-  --outline: #737487;
-  --outline-variant: #454758;
+  --outline: #94a3b8;
+  --outline-variant: #cbd5e1;
 
   /* Status */
-  --error: #ff6e84;
-  --error-container: #a70138;
-  --success: #00d9a6;
-  --warning: #ffb547;
-  --info: #64b5f6;
+  --error: #dc2626;
+  --error-container: #fee2e2;
+  --success: #16a34a;
+  --warning: #d97706;
+  --info: #2563eb;
 
-  /* Teal accent */
-  --teal: #00d9a6;
-  --coral: #ff6b6b;
-  --amber: #ffb547;
+  /* Accent */
+  --teal: #0d9488;
+  --coral: #ef4444;
+  --amber: #f59e0b;
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
-  --shadow-lg: 0 20px 40px rgba(0,0,0,0.4);
-  --shadow-glow: 0 0 20px rgba(168,164,255,0.1);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 0 0 rgba(0, 0, 0, 0);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -69,8 +70,9 @@
   --radius-full: 9999px;
 
   /* Typography */
-  --font-heading: 'Manrope', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-heading: "Poppins", sans-serif;
+  --font-subtitle: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
 /* ===== RESET ===== */
@@ -100,7 +102,7 @@ body,
 
 body {
   font-family: var(--font-body);
-  background: var(--bg);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
   color: var(--on-surface);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -133,17 +135,17 @@ input, textarea, select {
 
 /* ===== UTILITY CLASSES ===== */
 .glass {
-  background: rgba(22, 24, 42, 0.6);
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(69, 71, 88, 0.15);
+  border: 1px solid #dbe3ee;
 }
 
 .glass-card {
-  background: rgba(22, 24, 42, 0.6);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(69, 71, 88, 0.15);
+  border: 1px solid #dbe3ee;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: transform var(--transition-base), box-shadow var(--transition-base);
@@ -156,7 +158,7 @@ input, textarea, select {
 
 .gradient-btn {
   background: linear-gradient(135deg, var(--primary-dim), var(--primary-container));
-  color: #fff;
+  color: var(--on-primary);
   font-weight: 600;
   padding: 12px 28px;
   border-radius: var(--radius-md);
@@ -168,7 +170,7 @@ input, textarea, select {
 
 .gradient-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(103, 93, 249, 0.35);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
 }
 
 .gradient-btn:active {
@@ -182,13 +184,13 @@ input, textarea, select {
   padding: 12px 28px;
   border-radius: var(--radius-md);
   font-size: 0.95rem;
-  border: 1px solid rgba(69, 71, 88, 0.3);
+  border: 1px solid #cbd5e1;
   transition: all var(--transition-base);
 }
 
 .outline-btn:hover {
-  background: var(--surface-bright);
-  border-color: var(--primary-dim);
+  background: #eff6ff;
+  border-color: var(--primary-container);
 }
 
 .input-field {
@@ -198,7 +200,7 @@ input, textarea, select {
   padding: 14px 16px;
   border-radius: var(--radius-md);
   font-size: 0.95rem;
-  border: 1px solid transparent;
+  border: 1px solid #d6deea;
   transition: all var(--transition-base);
 }
 
@@ -208,8 +210,9 @@ input, textarea, select {
 }
 
 .input-field:focus {
-  background: var(--surface-bright);
-  box-shadow: 0 0 0 2px rgba(168, 164, 255, 0.2);
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.25);
 }
 
 .badge {
