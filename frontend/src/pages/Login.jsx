@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Shield, CheckCircle2 } from 'lucide-react';
 import { authAPI } from '../api/axios';
 import { useToast } from '../components/ToastProvider';
 import './Auth.css';
@@ -35,69 +35,101 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-page">
+    <div className="auth-page login-page">
       <div className="auth-bg-orb auth-orb-1" />
       <div className="auth-bg-orb auth-orb-2" />
 
-      <div className="auth-card glass-card animate-fade-in">
-        <div className="auth-brand" onClick={() => navigate('/')}>
-          <Shield size={28} className="auth-brand-icon" />
-          <span>LegalMind<span className="brand-ai">AI</span></span>
-        </div>
+      <div className="login-shell glass-card animate-fade-in">
+        <section className="login-visual">
+          <img
+            src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1400&q=80"
+            alt="Modern legal workspace"
+            className="login-visual-image"
+          />
+          <div className="login-visual-overlay" />
+          <div className="login-visual-content">
+            <p className="login-visual-kicker">Secure Legal Workspace</p>
+            <h2>Find Answers Faster With AI + Verified Lawyers</h2>
+            <p>
+              Access case summaries, document insights, and private lawyer consultations from one dashboard.
+            </p>
+            <div className="login-feature-list">
+              <div className="login-feature-item">
+                <CheckCircle2 size={16} />
+                <span>Encrypted chat and document safety</span>
+              </div>
+              <div className="login-feature-item">
+                <CheckCircle2 size={16} />
+                <span>Instant AI answers with human fallback</span>
+              </div>
+              <div className="login-feature-item">
+                <CheckCircle2 size={16} />
+                <span>Role-based dashboards for users and lawyers</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <h1 className="auth-title">Welcome Back</h1>
-        <p className="auth-subtitle">Sign in to continue your legal research</p>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="input-group">
-            <Mail size={18} className="input-icon" />
-            <input
-              type="email"
-              className="input-field input-with-icon"
-              placeholder="Email address"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
+        <section className="auth-card login-auth-card">
+          <div className="auth-brand" onClick={() => navigate('/')}>
+            <Shield size={28} className="auth-brand-icon" />
+            <span>LegalMind<span className="brand-ai">AI</span></span>
           </div>
 
-          <div className="input-group">
-            <Lock size={18} className="input-icon" />
-            <input
-              type={showPass ? 'text' : 'password'}
-              className="input-field input-with-icon"
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
-            <button type="button" className="pass-toggle" onClick={() => setShowPass(!showPass)}>
-              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+          <h1 className="auth-title">Welcome Back</h1>
+          <p className="auth-subtitle">Sign in to continue your legal research</p>
+
+          {error && <div className="auth-error">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="input-group">
+              <Mail size={18} className="input-icon" />
+              <input
+                type="email"
+                className="input-field input-with-icon"
+                placeholder="Email address"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <Lock size={18} className="input-icon" />
+              <input
+                type={showPass ? 'text' : 'password'}
+                className="input-field input-with-icon"
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+              <button type="button" className="pass-toggle" onClick={() => setShowPass(!showPass)}>
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <div className="auth-extras">
+              <label className="remember-me">
+                <input type="checkbox" />
+                <span>Remember me</span>
+              </label>
+              <a href="#" className="forgot-link">Forgot Password?</a>
+            </div>
+
+            <button type="submit" className="gradient-btn auth-submit" disabled={loading}>
+              {loading ? 'Signing in...' : 'Login'}
             </button>
+          </form>
+
+          <div className="auth-divider">
+            <span>OR</span>
           </div>
 
-          <div className="auth-extras">
-            <label className="remember-me">
-              <input type="checkbox" />
-              <span>Remember me</span>
-            </label>
-            <a href="#" className="forgot-link">Forgot Password?</a>
-          </div>
-
-          <button type="submit" className="gradient-btn auth-submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Login'}
-          </button>
-        </form>
-
-        <div className="auth-divider">
-          <span>OR</span>
-        </div>
-
-        <p className="auth-switch">
-          Don't have an account? <Link to="/register">Sign Up</Link>
-        </p>
+          <p className="auth-switch">
+            Don't have an account? <Link to="/register">Sign Up</Link>
+          </p>
+        </section>
       </div>
     </div>
   );
