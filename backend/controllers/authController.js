@@ -19,15 +19,17 @@ const registerUser = async (req, res) => {
             email,
             password
         });
-
-        if (user) {
+        if (!user) {
+    return res.status(400).json({ message: "User creation failed" });
+}
+    
             res.status(201).json({
                 _id: user.id,
                 name: user.name,
                 email: user.email,
                 token: generateToken(user._id) // Account banne pe token free
             });
-        }
+    
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -50,7 +52,7 @@ const loginUser = async (req, res) => {
                 token: generateToken(user._id) // Login hone par entry token
             });
         } else {
-            res.status(401).json({ message: 'Email or Password galat hai!' });
+            res.status(401).json({ message: 'Email or Password is wrong!' });
         }
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
