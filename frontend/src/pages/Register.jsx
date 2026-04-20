@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, Shield } from 'lucide-react';
 import { authAPI } from '../api/axios';
+import { useToast } from '../components/ToastProvider';
 import './Auth.css';
 
 export default function Register() {
@@ -10,6 +11,7 @@ export default function Register() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
 
   const getPasswordStrength = () => {
     const p = form.password;
@@ -33,14 +35,18 @@ export default function Register() {
     setError('');
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match.');
+      addToast('Passwords do not match.', 'error');
       return;
     }
     setLoading(true);
     try {
       await authAPI.register({ name: form.name, email: form.email, password: form.password });
+      addToast('Registration successful. Please login.', 'success');
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(message);
+      addToast(message, 'error');
     } finally {
       setLoading(false);
     }

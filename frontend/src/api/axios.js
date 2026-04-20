@@ -71,4 +71,58 @@ export const summaryAPI = {
   generate: (documentId) => api.post('/document/summary', { document_id: documentId }),
 };
 
+const lawyerApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+lawyerApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('legalmind_lawyer_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+const adminApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('legalmind_admin_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const lawyerAPI = {
+  register: (payload) => api.post('/lawyers/auth/register', payload),
+  login: (email, password) => api.post('/lawyers/auth/login', { email, password }),
+  statusByEmail: (email) => api.get(`/lawyers/auth/status?email=${encodeURIComponent(email)}`),
+  listAvailable: (params = {}) => api.get('/lawyers/available', { params }),
+  connect: (payload) => api.post('/lawyers/connect', payload),
+  myRequests: () => api.get('/lawyers/my-requests'),
+  getUserConsultationMessages: (requestId) => api.get(`/lawyers/requests/${requestId}/messages`),
+  adminProfile: () => lawyerApi.get('/lawyers/admin/profile'),
+  updateAdminProfile: (payload) => lawyerApi.put('/lawyers/admin/profile', payload),
+  updateAvailability: (payload) => lawyerApi.patch('/lawyers/admin/availability', payload),
+  adminRequests: () => lawyerApi.get('/lawyers/admin/requests'),
+  getLawyerConsultationMessages: (requestId) => lawyerApi.get(`/lawyers/admin/requests/${requestId}/messages`),
+  updateRequestStatus: (requestId, payload) => lawyerApi.patch(`/lawyers/admin/requests/${requestId}/status`, payload),
+  adminStats: () => lawyerApi.get('/lawyers/admin/dashboard/stats'),
+};
+
+export const superAdminAPI = {
+  login: (email, password) => adminApi.post('/admin/auth/login', { email, password }),
+  getPendingLawyers: () => adminApi.get('/admin/lawyers/pending'),
+  getAllLawyers: () => adminApi.get('/admin/lawyers'),
+  verifyLawyer: (lawyerId, action, rejectionReason) => adminApi.patch(`/admin/lawyers/${lawyerId}/verification`, { action, rejectionReason }),
+};
+
 export default api;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, MessageSquare, ShieldAlert, FileText, Files, AlertTriangle, Search, ArrowRight, Clock } from 'lucide-react';
+import { Upload, MessageSquare, ShieldAlert, FileText, Files, AlertTriangle, Search, ArrowRight, Clock, UserCheck } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { documentsAPI } from '../api/axios';
 import './Dashboard.css';
@@ -39,6 +39,10 @@ export default function Dashboard() {
     {
       icon: MessageSquare, title: 'Q&A Chatbot', desc: 'Ask questions about your legal documents',
       color: 'var(--teal)', bgColor: 'rgba(0, 217, 166, 0.1)', borderColor: 'rgba(0, 217, 166, 0.2)', path: '/chat',
+    },
+    {
+      icon: UserCheck, title: 'Connect Lawyer', desc: 'Not satisfied with AI answer? Raise a request to a verified lawyer',
+      color: 'var(--info)', bgColor: 'rgba(100, 181, 246, 0.1)', borderColor: 'rgba(100, 181, 246, 0.2)', path: '/connect-lawyer',
     },
     {
       icon: ShieldAlert, title: 'Risk Analyzer', desc: 'Analyze contracts for risks and compliance issues',

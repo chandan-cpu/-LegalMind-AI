@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Upload, MessageSquare, ShieldAlert, FileText, Settings, LogOut, Scale } from 'lucide-react';
+import { LayoutDashboard, Upload, MessageSquare, ShieldAlert, FileText, Settings, LogOut, Scale, UserCheck } from 'lucide-react';
 import './Sidebar.css';
 
 export default function Sidebar() {
@@ -14,6 +14,7 @@ export default function Sidebar() {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Upload' },
     { to: '/chat', icon: MessageSquare, label: 'Chat' },
+    { to: '/connect-lawyer', icon: UserCheck, label: 'Connect Lawyer' },
     { to: '/risk', icon: ShieldAlert, label: 'Risk Analyzer' },
     { to: '/summary', icon: FileText, label: 'Summary' },
     { to: '/settings', icon: Settings, label: 'Settings' },

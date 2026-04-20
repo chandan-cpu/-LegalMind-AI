@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, FileText, Clock, Bot, User, Sparkles,Mic , MicOff } from 'lucide-react';
+import { io } from 'socket.io-client';
 import Sidebar from '../components/Sidebar';
-import { queryAPI, documentsAPI } from '../api/axios';
+import { documentsAPI } from '../api/axios';
+import { useToast } from '../components/ToastProvider';
 import './Chat.css';
 
 export default function ChatPage() {
+  const { addToast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState('');
   const [documents, setDocuments] = useState([]); // 🔥 API documents aayenge yaha
@@ -17,7 +20,9 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socketReady, setSocketReady] = useState(false);
   const chatEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   // 🔥 [NEW] Page khulte hi database se tumhari files mangwayega
   useEffect(() => {
@@ -39,6 +44,73 @@ export default function ChatPage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('legalmind_token');
+    if (!token) {
+      addToast('Please login first to start realtime chat.', 'error');
+      return undefined;
+    }
+
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const socketBase = import.meta.env.VITE_SOCKET_URL || apiBase.replace(/\/api\/?$/, '');
+
+    const socket = io(socketBase, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setSocketReady(true);
+    });
+
+    socket.on('disconnect', () => {
+      setSocketReady(false);
+    });
+
+    socket.on('connect_error', () => {
+      setSocketReady(false);
+      addToast('Realtime chat server connect nahi hua. Backend check karo.', 'error');
+    });
+
+    socket.on('chat:error', (payload) => {
+      setLoading(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: payload?.message || 'Something went wrong during realtime chat.',
+          sources: [],
+          confidence: 0,
+        },
+      ]);
+    });
+
+    socket.on('chat:response', (payload) => {
+      setLoading(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: payload?.answer || 'No answer generated.',
+          sources: payload?.sources || [],
+          confidence: payload?.confidence || 0,
+        },
+      ]);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [addToast]);
+
+  useEffect(() => {
+    if (!selectedDoc || !socketRef.current || !socketReady) return;
+    socketRef.current.emit('chat:join', { documentId: selectedDoc });
+  }, [selectedDoc, socketReady]);
 
     const handleVoiceInput = () => {
     // Check agar browser support karta hai
@@ -77,30 +149,22 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     if (!input.trim() || loading || !selectedDoc) return;
+    if (!socketRef.current || !socketReady) {
+      addToast('Socket connected nahi hai. Backend start karke dobara try karo.', 'error');
+      return;
+    }
+
     const question = input.trim();
+    const clientMessageId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: question }]);
     setLoading(true);
 
-    try {
-      // 🔥 [NEW] Ye direct Node.js -> Python Engine ko query bheja hai!
-      const res = await queryAPI.ask(selectedDoc, question);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: res.data.answer,
-        sources: res.data.sources || [],
-        confidence: res.data.confidence || 90,
-      }]);
-    } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: "Error connecting to AI Backend. Please make sure the document is processed.",
-        sources: [],
-        confidence: 0,
-      }]);
-    } finally {
-      setLoading(false);
-    }
+    socketRef.current.emit('chat:message', {
+      documentId: selectedDoc,
+      question,
+      clientMessageId,
+    });
   };
 
   // Jo file user ne chuni hai uska naam filter karna

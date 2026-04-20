@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { authAPI } from '../api/axios';
+import { useToast } from '../components/ToastProvider';
 import './Auth.css';
 
 export default function Login() {
@@ -10,6 +11,7 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,9 +23,12 @@ export default function Login() {
       localStorage.setItem('legalmind_name', res.data.name);     // <-- ADDED
       localStorage.setItem('legalmind_email', res.data.email);   // <-- ADDED
 
+      addToast('Login successful', 'success');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const message = err.response?.data?.message || 'Login failed. Please try again.';
+      setError(message);
+      addToast(message, 'error');
     } finally {
       setLoading(false);
     }

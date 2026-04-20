@@ -42,6 +42,43 @@
 .landing-nav-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.menu-group {
+  position: relative;
+}
+
+.menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(69, 71, 88, 0.25);
+  overflow: hidden;
+  z-index: 60;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--on-surface);
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  border: none;
+}
+
+.menu-item:hover {
+  background: var(--surface-container-high);
 }
 
 .landing-nav-actions .outline-btn {

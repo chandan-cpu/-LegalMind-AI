@@ -1,0 +1,132 @@
+.connect-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.connect-card {
+  padding: 20px;
+}
+
+.input-label {
+  display: block;
+  margin: 12px 0 8px;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.selected-lawyer-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-container-high);
+}
+
+.selected-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.selected-meta {
+  margin-top: 4px;
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.status-text {
+  margin-top: 12px;
+  color: var(--info);
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.request-item {
+  border: 1px solid rgba(69, 71, 88, 0.25);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.request-title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.unread-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.request-summary {
+  margin: 6px 0;
+  color: var(--on-surface-variant);
+}
+
+.request-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+
+.request-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.request-note {
+  margin-top: 8px;
+  color: var(--warning);
+  font-size: 0.85rem;
+}
+
+.request-doc {
+  margin-top: 8px;
+  color: var(--on-surface-variant);
+  font-size: 0.84rem;
+}
+
+.request-item .action-btn {
+  margin-top: 10px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-text {
+  color: var(--on-surface-variant);
+}
+
+@media (max-width: 900px) {
+  .connect-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row-2 {
+    grid-template-columns: 1fr;
+  }
+}

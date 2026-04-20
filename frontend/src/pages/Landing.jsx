@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Search, Brain, FileCheck, Briefcase, ArrowRight, Shield, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Brain, FileCheck, Briefcase, ArrowRight, Shield, Sparkles, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import './Landing.css';
 
 export default function Landing() {
@@ -8,6 +8,19 @@ export default function Landing() {
   const [query, setQuery] = useState('');
   const [activeFeature, setActiveFeature] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
+  const [openMenu, setOpenMenu] = useState(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const features = [
     {
@@ -63,6 +76,15 @@ export default function Landing() {
     navigate('/register');
   };
 
+  const toggleMenu = (menu) => {
+    setOpenMenu((prev) => (prev === menu ? null : menu));
+  };
+
+  const handleMenuNavigate = (path) => {
+    setOpenMenu(null);
+    navigate(path);
+  };
+
   return (
     <div className="landing-page">
       {/* Navbar */}
@@ -72,9 +94,30 @@ export default function Landing() {
             <Shield size={24} className="landing-brand-icon" />
             <span>LegalMind<span className="brand-ai">AI</span></span>
           </div>
-          <div className="landing-nav-actions">
-            <button className="outline-btn" onClick={() => navigate('/login')}>Login</button>
-            <button className="gradient-btn" onClick={() => navigate('/register')}>Sign Up</button>
+          <div className="landing-nav-actions" ref={menuRef}>
+            <div className="menu-group">
+              <button className="outline-btn menu-trigger" onClick={() => toggleMenu('login')}>
+                Login <ChevronDown size={15} />
+              </button>
+              {openMenu === 'login' && (
+                <div className="menu-dropdown glass">
+                  <button className="menu-item" onClick={() => handleMenuNavigate('/login')}>Login as User</button>
+                  <button className="menu-item" onClick={() => handleMenuNavigate('/lawyer/login')}>Login as Lawyer</button>
+                </div>
+              )}
+            </div>
+
+            <div className="menu-group">
+              <button className="gradient-btn menu-trigger" onClick={() => toggleMenu('signup')}>
+                Sign Up <ChevronDown size={15} />
+              </button>
+              {openMenu === 'signup' && (
+                <div className="menu-dropdown glass">
+                  <button className="menu-item" onClick={() => handleMenuNavigate('/register')}>Sign Up as User</button>
+                  <button className="menu-item" onClick={() => handleMenuNavigate('/lawyer/register')}>Sign Up as Lawyer</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
