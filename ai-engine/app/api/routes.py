@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 import json
+import base64
 
-from app.services.rag_service import process_and_ingest_pdf
+from app.services.rag_service import process_and_ingest_pdf, process_and_ingest_pdf_bytes
 from app.core.graph import app as langgraph_app 
 from app.core.agents import risk_node, summary_node
 
@@ -20,12 +21,26 @@ class QueryRequest(BaseModel):
 class DocOnlyRequest(BaseModel):
     document_id: str
 
-# --- 1. INGESTION ENDPOINT ---
+# --- 1. INGESTION ENDPOINTS ---
 @router.post("/ai/ingest")
 async def ingest_endpoint(request: IngestRequest):
     try:
         chunks_saved = process_and_ingest_pdf(request.file_url, request.document_id)
         return {"status": "success", "chunks_processed": chunks_saved, "message": f"{chunks_saved} chunks pushed to Pinecone."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ai/ingest-file")
+async def ingest_file_endpoint(document_id: str = Form(...), file: UploadFile = File(...)):
+    try:
+        # Securely read streams into bytes without strictly enforcing JSON body inflation
+        file_bytes = await file.read()
+        chunks_saved = process_and_ingest_pdf_bytes(file_bytes, document_id)
+        return {
+            "status": "success",
+            "chunks_processed": chunks_saved,
+            "message": f"{chunks_saved} chunks pushed to Pinecone."
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

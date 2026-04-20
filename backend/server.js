@@ -11,8 +11,13 @@ connectDB();
 
 const app = express();
 
+const path = require('path');
+
 app.use(express.json());
 app.use(cors()); 
+
+// Serve uploads folder statically for PDF previews
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- ROUTES IMPORTS ---
 const authRoutes = require('./routes/authRoutes');

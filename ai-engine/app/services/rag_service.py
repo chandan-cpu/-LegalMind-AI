@@ -12,25 +12,27 @@ load_dotenv()
 # Setup
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-pinecone_index = pc.Index("ragpipeline")
+pinecone_index = pc.Index("legalmind-index")
 
-# Yeh ab ek simple function hai, API endpoint nahi!
-def process_and_ingest_pdf(file_url: str, document_id: str):
+def process_and_ingest_pdf_bytes(file_bytes: bytes, document_id: str):
     print(f"--> Processing doc: {document_id}")
-    
-    response = requests.get(file_url)
-    response.raise_for_status()
-    
-    doc = fitz.open(stream=response.content, filetype="pdf")
+
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
     raw_text = ""
     for page in doc:
         raw_text += page.get_text()
+
+    if not raw_text.strip():
+        raise ValueError("No readable text found in PDF")
         
     # LangChain Text Splitter ka use karke smart chunking karo
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     
     # create_documents ki jagah split_text use karenge
     chunks_list = text_splitter.split_text(raw_text) 
+
+    if not chunks_list:
+        raise ValueError("No text chunks generated from PDF")
 
     pinecone_vectors = []
     for i, chunk_text in enumerate(chunks_list):
@@ -45,3 +47,10 @@ def process_and_ingest_pdf(file_url: str, document_id: str):
     # Pinecone Cloud mein push karo
     pinecone_index.upsert(vectors=pinecone_vectors)
     return len(chunks_list)
+
+
+# URL-based compatibility helper
+def process_and_ingest_pdf(file_url: str, document_id: str):
+    response = requests.get(file_url)
+    response.raise_for_status()
+    return process_and_ingest_pdf_bytes(response.content, document_id)

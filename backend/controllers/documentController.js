@@ -1,6 +1,7 @@
 const Document = require("../models/Document");
 const axios = require("axios");
 const { uploadToCloudinary } = require("../middleware/uploadMiddleware");
+const path = require("path");
 
 // 1. Get All Documents
 const getDocuments = async (req, res) => {
@@ -23,30 +24,69 @@ const uploadDocument = async (req, res) => {
             return res.status(400).json({ message: "No file uploaded!" });
         }
 
-        const result = await uploadToCloudinary(req.file.buffer);
+        const isPdf = req.file.mimetype === "application/pdf" || req.file.originalname.toLowerCase().endsWith('.pdf');
+        const baseName = path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const uploadOptions = {
+            folder: "legalmind-documents",
+            public_id: isPdf ? `${baseName}_${Date.now()}.pdf` : `${baseName}_${Date.now()}`,
+            resource_type: isPdf ? "raw" : "auto",
+        };
+
+        // Cloudinary upload directly from the saved physical disk file
+        let cloudinaryPublicId = undefined;
+        try {
+            const result = await uploadToCloudinary(req.file.path, uploadOptions);
+            cloudinaryPublicId = result.public_id;
+        } catch (cloudError) {
+            console.warn("Cloudinary upload bypassed (likely 10MB free tier limit). Defaulting to Local AI Server Storage.", cloudError.message);
+        }
+
+        // Point the UI safely to our static Node server uploads directory for flawlessly reliable zero-cors PDF previews
+        const fs = require('fs');
+        const PORT = process.env.PORT || 5000;
+        const localFileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
 
         const newDoc = await Document.create({
             userId: req.user._id,
             title: req.file.originalname,
-            fileUrl: result.secure_url,
-            cloudinaryPublicId: result.public_id
+            fileUrl: localFileUrl, // Safe local preview URL overriding Cloudinary
+            cloudinaryPublicId: cloudinaryPublicId
         });
 
-        const pythonResponse = await axios.post(
-            "http://127.0.0.1:8000/ai/ingest",
-            {
-                file_url: result.secure_url,
-                document_id: newDoc._id.toString()
-            }
-        );
+        let aiEngineOutput = null;
+        try {
+            const FormData = require('form-data');
+            const data = new FormData();
 
-        newDoc.status = "Ingested";
-        await newDoc.save();
+            // Read the saved physical file off disk memory as a stream to pass into AI
+            data.append('file', fs.createReadStream(req.file.path));
+            data.append('document_id', newDoc._id.toString());
+
+            const pythonResponse = await axios.post(
+                "http://127.0.0.1:8000/ai/ingest-file",
+                data,
+                {
+                    headers: {
+                        ...data.getHeaders()
+                    },
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity
+                }
+            );
+
+            newDoc.status = "Ingested";
+            await newDoc.save();
+            aiEngineOutput = pythonResponse.data;
+        } catch (aiError) {
+            const aiDetail = aiError.response?.data?.detail || aiError.message;
+            console.error("AI ingestion failed:", aiDetail);
+        }
 
         res.status(201).json({
             message: "File uploaded successfully",
             document: newDoc,
-            aiEngineOutput: pythonResponse.data
+            aiEngineOutput,
+            warning: aiEngineOutput ? undefined : "File uploaded but AI ingestion is pending"
         });
 
     } catch (error) {
@@ -56,7 +96,6 @@ const uploadDocument = async (req, res) => {
         });
     }
 };
-console.log("Document controller loaded successfully.",Error);
 
 
 // 3. Query

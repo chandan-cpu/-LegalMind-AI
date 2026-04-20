@@ -45,7 +45,7 @@ export const documentsAPI = {
   upload: (file, onProgress) => {
     const formData = new FormData();
     // dhyan dena yahan 'pdfFile' hi likhna hai kyuki node.js ka multer isi naam se wait kar raha hai
-    formData.append('pdfFile', file); 
+    formData.append('pdfFile', file);
     return api.post('/document/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: onProgress,

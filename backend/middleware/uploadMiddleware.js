@@ -2,9 +2,26 @@ const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
 const { Readable } = require('stream');
 
-// 1. Multer Memory Storage: File ko RAM mein rakhega (disk pe nahi likhega)
-//    Kyunki hum seedha Cloudinary pe bhejenge, local save ki zaroorat nahi
-const storage = multer.memoryStorage();
+const fs = require('fs');
+const path = require('path');
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// 1. Multer Disk Storage: File ko local server me save karega preview ke liye
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+        cb(null, `${name}_${Date.now()}${ext}`);
+    }
+});
 
 // 2. File Filter: Sirf allowed file types hi accept karo
 const fileFilter = (req, file, cb) => {
@@ -17,28 +34,27 @@ const fileFilter = (req, file, cb) => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
     ];
 
-    if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true); // File accept karo
+    if (allowedTypes.includes(file.mimetype) || file.originalname.toLowerCase().endsWith('.pdf')) {
+        cb(null, true);
     } else {
         cb(new Error('Invalid file type! Only PDF, JPEG, PNG, WEBP, DOC, DOCX allowed.'), false);
     }
 };
 
-// 3. Multer instance banao with memory storage + filter + size limit (10MB)
+// 3. Multer instance banao
 const upload = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10 MB max
+    limits: { fileSize: 50 * 1024 * 1024 } // 50 MB max
 });
 
-// 4. Cloudinary pe upload karne ka helper function
-//    Buffer (RAM mein rakhi file) ko stream banakar Cloudinary ko bhejta hai
-const uploadToCloudinary = (fileBuffer, options = {}) => {
+// 4. Cloudinary pe local file se upload karne ka helper function
+const uploadToCloudinary = (localFilePath, options = {}) => {
     return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
+        cloudinary.uploader.upload(localFilePath, 
             {
                 folder: options.folder || 'legalmind-documents',
-                resource_type: options.resource_type || 'auto', // auto-detect (image, pdf, raw, etc.)
+                resource_type: options.resource_type || 'auto',
                 public_id: options.public_id || undefined,
                 ...options,
             },
@@ -50,12 +66,6 @@ const uploadToCloudinary = (fileBuffer, options = {}) => {
                 }
             }
         );
-
-        // Buffer ko readable stream mein convert karke Cloudinary upload stream mein pipe karo
-        const readableStream = new Readable();
-        readableStream.push(fileBuffer);
-        readableStream.push(null); // Stream khatam
-        readableStream.pipe(uploadStream);
     });
 };
 
