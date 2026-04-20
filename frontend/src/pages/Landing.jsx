@@ -1,20 +1,35 @@
 import { useNavigate } from 'react-router-dom';
-import { Search, Brain, FileCheck, Briefcase, ArrowRight, Shield, Sparkles, ChevronDown } from 'lucide-react';
+import { Search, Brain, FileCheck, Briefcase, ArrowRight, Shield, Sparkles, ChevronDown, Menu, X, Scale, MessageSquare, ShieldCheck, UserCheck, Sun, Moon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import heroImage from '../assets/hero.png';
 import './Landing.css';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const heroExternalImage = 'https://www.freepik.com/free-vector/colorful-background-with-red-purple-color-it_356335705.htm#fromView=keyword&page=2&position=33&uuid=83726474-55e3-4184-91ad-ceea7b4bdce0&query=Background';
   const [query, setQuery] = useState('');
   const [activeFeature, setActiveFeature] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
   const [openMenu, setOpenMenu] = useState(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('legalmind_theme') !== 'light');
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.remove('light-theme-magic');
+      localStorage.setItem('legalmind_theme', 'dark');
+    } else {
+      document.body.classList.add('light-theme-magic');
+      localStorage.setItem('legalmind_theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setOpenMenu(null);
+        setMobileNavOpen(false);
       }
     };
 
@@ -25,21 +40,51 @@ export default function Landing() {
   const features = [
     {
       icon: Brain,
-      title: 'Smart Search',
-      desc: 'Intelligent document search powered by advanced AI retrieval. Find relevant clauses, terms, and precedents instantly.',
+      title: 'AI Document Q&A',
+      desc: 'Upload legal PDFs and ask contextual questions with AI-backed answers and citations in the chat workspace.',
       color: 'var(--primary)',
     },
     {
       icon: FileCheck,
-      title: 'Contract Analyzer',
-      desc: 'Automated AI contract analysis that identifies risks, key terms, and compliance issues in seconds.',
+      title: 'Risk Analysis Engine',
+      desc: 'Analyze contracts for legal risk indicators and review generated risk outputs directly from your dashboard.',
       color: 'var(--teal)',
     },
     {
       icon: Briefcase,
-      title: 'Case Finder',
-      desc: 'Discover relevant legal cases and precedents that strengthen your arguments and legal positions.',
+      title: 'Document Summary',
+      desc: 'Generate concise legal summaries from uploaded documents to speed up first-pass review and understanding.',
       color: 'var(--amber)',
+    },
+    {
+      icon: UserCheck,
+      title: 'Connect Verified Lawyer',
+      desc: 'If AI output is not enough, create consultation requests and pick mode: chat, call, WhatsApp, or in-person.',
+      color: 'var(--primary)',
+    },
+    {
+      icon: MessageSquare,
+      title: 'Realtime Consultation Chat',
+      desc: 'Socket.IO powered private consultation chat with unread count, typing indicators, and status-aware actions.',
+      color: 'var(--teal)',
+    },
+    {
+      icon: Scale,
+      title: 'Lawyer Workbench',
+      desc: 'Lawyers can manage requests, update statuses, review attached PDFs, and maintain availability from dashboard.',
+      color: 'var(--amber)',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Super Admin Approval',
+      desc: 'Only approved lawyers go live with verification workflows for pending, approved, and rejected states.',
+      color: 'var(--primary)',
+    },
+    {
+      icon: Shield,
+      title: 'Multi-Role Access Control',
+      desc: 'Separate protected routes and tokens for users, lawyers, and super-admin to enforce role-based access.',
+      color: 'var(--teal)',
     },
   ];
 
@@ -82,19 +127,37 @@ export default function Landing() {
 
   const handleMenuNavigate = (path) => {
     setOpenMenu(null);
+    setMobileNavOpen(false);
     navigate(path);
+  };
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => !prev);
   };
 
   return (
     <div className="landing-page">
       {/* Navbar */}
       <nav className="landing-nav">
-        <div className="landing-nav-inner">
+        <div className="landing-nav-inner" ref={menuRef}>
           <div className="landing-brand">
             <Shield size={24} className="landing-brand-icon" />
             <span>LegalMind<span className="brand-ai">AI</span></span>
           </div>
-          <div className="landing-nav-actions" ref={menuRef}>
+          <button
+            className="landing-hamburger"
+            type="button"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen((prev) => !prev)}
+          >
+            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div className={`landing-nav-actions ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
+            <button className="outline-btn theme-toggle-btn" type="button" onClick={toggleTheme}>
+              {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+              {isDarkMode ? 'Light' : 'Dark'}
+            </button>
             <div className="menu-group">
               <button className="outline-btn menu-trigger" onClick={() => toggleMenu('login')}>
                 Login <ChevronDown size={15} />
@@ -123,10 +186,15 @@ export default function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="hero">
+      <section
+        className="hero relative overflow-hidden bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url("${heroExternalImage}"), url(${heroImage})` }}
+      >
+        <div className="hero-animated-overlay" aria-hidden="true" />
+        <div className="hero-animated-grid" aria-hidden="true" />
         <div className="hero-bg-orb hero-orb-1" />
         <div className="hero-bg-orb hero-orb-2" />
-        <div className="hero-content animate-fade-in">
+        <div className="hero-content animate-fade-in relative z-10">
           <div className="hero-badge">
             <Sparkles size={14} />
             <span>Powered by Advanced AI</span>
@@ -178,7 +246,7 @@ export default function Landing() {
 
       {/* Features */}
       <section className="features-section" id="features">
-        <h2 className="section-title">Everything You Need for Legal Intelligence</h2>
+        <h2 className="section-title">Integrated Features in LegalMind AI</h2>
         <div className="features-grid">
           {features.map((f, i) => (
             <button
@@ -214,10 +282,10 @@ export default function Landing() {
       <section className="stats-section">
         <div className="stats-grid">
           {[
-            { num: '10K+', label: 'Documents Analyzed' },
-            { num: '99.2%', label: 'Accuracy Rate' },
-            { num: '50+', label: 'Law Firms Trust Us' },
-            { num: '<3s', label: 'Average Response Time' },
+            { num: '3', label: 'Role Portals (User/Lawyer/Admin)' },
+            { num: '4', label: 'Core AI Flows (Upload/Chat/Risk/Summary)' },
+            { num: 'Realtime', label: 'Socket.IO Consultation Chat' },
+            { num: 'Verified', label: 'Lawyer Approval Workflow' },
           ].map((s, i) => (
             <div className="stat-item" key={i}>
               <span className="stat-num">{s.num}</span>
