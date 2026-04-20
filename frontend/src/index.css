@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
-
+@import "tailwindcss";
 /* ===== DESIGN SYSTEM: Juris Obsidian ===== */
 :root {
   /* Surface Colors */
@@ -85,6 +85,19 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: var(--font-body);
   background: var(--bg);
@@ -93,6 +106,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 a {
