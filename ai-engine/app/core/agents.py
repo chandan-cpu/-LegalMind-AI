@@ -1,4 +1,6 @@
 import os
+from pinecone_text.sparse import BM25Encoder
+bm25 = BM25Encoder().default()
 from langchain_groq import ChatGroq
 from app.services.rag_service import embedder, pinecone_index
 from app.models.schemas import RiskFinding
@@ -22,11 +24,15 @@ def query_node(state: dict):
     
     # STEP 1: Question ko Vector banao
     query_vector = embedder.encode(query).tolist()
+
+    # STEP 1.5: Question ko Sparse Vector banao (Keywords ke liye) 
+    sparse_query_vector = bm25.encode_queries(query)
     
     # STEP 2: Pinecone mein Semantic Search karo
     # Notice the filter! Hum strictly usi doc mein search kar rahe hain.
     search_results = pinecone_index.query(
         vector=query_vector,
+        sparse_vector=sparse_query_vector,
         top_k=5,
         include_metadata=True,
         filter={"document_id": doc_id} 
@@ -37,17 +43,21 @@ def query_node(state: dict):
         return {"final_answer": "I cannot find the answer in the provided document."}
 
     # If all matches are weak, avoid fabricating answers.
-    top_score = max((m.get("score", 0) for m in matches), default=0)
-    if top_score < 0.2:
-        return {"final_answer": "I cannot find the answer in the provided document."}
-    
-    # STEP 3: Context (Mega String) banao
+    # top_score = max((m.get("score", 0) for m in matches), default=0)
+    # if top_score < 0.2:
+    #     return {"final_answer": "I cannot find the answer in the provided document."}
+        # STEP 3: Context (Mega String) banao
     context_text = ""
+    contexts_list =[]
     for match in matches:
-        # Yaad hai? Text 'metadata' ke andar save kiya tha humne!
         chunk_text = match.get("metadata", {}).get("text", "")
+        # NAYI LINE DIAGNOSIS KE LIYE:
+        print(f"DEBUG - Found Chunk (Score: {match.get('score')}): {chunk_text[:100]}") 
+
         if chunk_text:
             context_text += chunk_text + "\n\n---\n\n"
+            contexts_list.append(chunk_text)
+
 
     if not context_text.strip():
         return {"final_answer": "I cannot find the answer in the provided document."}
@@ -67,7 +77,7 @@ def query_node(state: dict):
     # STEP 5: Call LLM
     response = llm.invoke(prompt)
     
-    return {"final_answer": response.content}
+    return {"final_answer": response.content , "contexts": contexts_list}
 
 
 # --- DUMMY AGENTS (Inko baad mein RAG se connect karenge) ---
