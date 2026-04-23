@@ -3,6 +3,7 @@ const ConsultationRequest = require('../models/ConsultationRequest');
 const ConsultationMessage = require('../models/ConsultationMessage');
 const Document = require('../models/Document');
 const generateLawyerToken = require('../utils/generateLawyerToken');
+const mongoose = require('mongoose');
 
 const sanitizeList = (value) => {
     if (!value) return [];
@@ -12,6 +13,19 @@ const sanitizeList = (value) => {
         .map((item) => item.trim())
         .filter(Boolean);
 };
+
+const MAX_ISSUE_SUMMARY_LENGTH = 1500;
+const MAX_PREFERRED_TIME_LENGTH = 120;
+const MAX_LAWYER_NOTE_LENGTH = 800;
+
+const coerceTrimmedString = (value, maxLength) => {
+    if (value === undefined || value === null) return '';
+    const str = String(value).trim();
+    if (!str) return '';
+    return str.slice(0, maxLength);
+};
+
+const isValidObjectId = (value) => mongoose.Types.ObjectId.isValid(String(value || ''));
 
 const addUnreadCount = async (requests, actorType) => {
     const hydrated = await Promise.all(
@@ -223,6 +237,27 @@ const createConsultationRequest = async (req, res) => {
             return res.status(400).json({ message: 'lawyerId and issueSummary are required' });
         }
 
+        if (!isValidObjectId(lawyerId)) {
+            return res.status(400).json({ message: 'Invalid lawyerId' });
+        }
+
+        if (documentId && !isValidObjectId(documentId)) {
+            return res.status(400).json({ message: 'Invalid documentId' });
+        }
+
+        const cleanIssueSummary = coerceTrimmedString(issueSummary, MAX_ISSUE_SUMMARY_LENGTH);
+        if (!cleanIssueSummary) {
+            return res.status(400).json({ message: 'issueSummary cannot be empty' });
+        }
+
+        const allowedModes = ['chat', 'call', 'whatsapp', 'in-person', 'video'];
+        const cleanPreferredMode = preferredMode ? String(preferredMode).trim() : 'chat';
+        if (!allowedModes.includes(cleanPreferredMode)) {
+            return res.status(400).json({ message: 'preferredMode is invalid' });
+        }
+
+        const cleanPreferredTime = coerceTrimmedString(preferredTime, MAX_PREFERRED_TIME_LENGTH);
+
         const lawyer = await Lawyer.findOne({ _id: lawyerId, isActive: true });
         if (!lawyer) {
             return res.status(404).json({ message: 'Lawyer not found or not active' });
@@ -239,9 +274,9 @@ const createConsultationRequest = async (req, res) => {
             userId: req.user._id,
             lawyerId,
             documentId,
-            issueSummary,
-            preferredMode,
-            preferredTime,
+            issueSummary: cleanIssueSummary,
+            preferredMode: cleanPreferredMode,
+            preferredTime: cleanPreferredTime,
         });
 
         return res.status(201).json({ message: 'Consultation request created', request });
@@ -299,7 +334,8 @@ const updateConsultationStatus = async (req, res) => {
 
         request.status = status;
         if (lawyerResponseNote !== undefined) {
-            request.lawyerResponseNote = lawyerResponseNote;
+            const cleanLawyerResponseNote = coerceTrimmedString(lawyerResponseNote, MAX_LAWYER_NOTE_LENGTH);
+            request.lawyerResponseNote = cleanLawyerResponseNote;
         }
         if (scheduledAt !== undefined) {
             request.scheduledAt = scheduledAt;

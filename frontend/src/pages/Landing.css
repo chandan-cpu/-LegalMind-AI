@@ -11,7 +11,7 @@
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(11, 13, 28, 0.8);
+  background: rgba(1, 5, 47, 0.8);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(69, 71, 88, 0.1);
   transition: background var(--transition-base), border-color var(--transition-base);

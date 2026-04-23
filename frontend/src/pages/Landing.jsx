@@ -142,7 +142,7 @@ export default function Landing() {
         <div className="landing-nav-inner" ref={menuRef}>
           <div className="landing-brand">
             <Shield size={24} className="landing-brand-icon" />
-            <span>LegalMind<span className="brand-ai">AI</span></span>
+            <span className='text-green-600'>LegalMind<span className="brand-ai">AI</span></span>
           </div>
           <button
             className="landing-hamburger"

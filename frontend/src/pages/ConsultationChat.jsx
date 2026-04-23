@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { ArrowLeft, Send } from 'lucide-react';
 import { lawyerAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
 import './ConsultationChat.css';
 
@@ -136,7 +136,7 @@ export default function ConsultationChatPage({ actor = 'user' }) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [token, requestId, addToast]);
+  }, [token, requestId, addToast, actor]);
 
   const handleSend = () => {
     if (!input.trim()) return;

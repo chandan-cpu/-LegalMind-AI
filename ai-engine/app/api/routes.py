@@ -5,7 +5,7 @@ import base64
 
 from app.services.rag_service import process_and_ingest_pdf, process_and_ingest_pdf_bytes
 from app.core.graph import app as langgraph_app 
-from app.core.agents import risk_node, summary_node
+from app.core.agents import query_node, risk_node, summary_node
 
 router = APIRouter()
 
@@ -49,8 +49,11 @@ async def ingest_file_endpoint(document_id: str = Form(...), file: UploadFile = 
 async def ask_question(request: QueryRequest):
     try:
         print(f"--> AI received query: '{request.user_query}' for doc: '{request.document_id}'")
-        
-        result = langgraph_app.invoke({
+
+        # Chat endpoint should always answer the asked question from the selected document.
+        # Risk/Summary keyword routing can cause unrelated outputs in free-form chat,
+        # so we directly invoke the strict query agent here.
+        result = query_node({
             "user_query": request.user_query,
             "document_id": request.document_id
         })

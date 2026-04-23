@@ -123,6 +123,30 @@
   backdrop-filter: blur(18px);
 }
 
+.login-auth-card .auth-brand,
+.login-auth-card .auth-title {
+  color: #f8fafc;
+}
+
+.login-auth-card .auth-subtitle,
+.login-auth-card .auth-divider,
+.login-auth-card .auth-switch,
+.login-auth-card .remember-me,
+.login-auth-card .input-icon,
+.login-auth-card .pass-toggle {
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.login-auth-card .auth-switch a,
+.login-auth-card .forgot-link {
+  color: #93c5fd;
+}
+
+.login-auth-card .forgot-link:hover,
+.login-auth-card .auth-switch a:hover {
+  color: #bfdbfe;
+}
+
 @keyframes loginImageFloat {
   from {
     transform: scale(1.03) translate3d(0, 0, 0);

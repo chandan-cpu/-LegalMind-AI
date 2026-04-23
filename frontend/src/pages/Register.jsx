@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, Shield } from 'lucide-react';
 import { authAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import './Auth.css';
 
 export default function Register() {

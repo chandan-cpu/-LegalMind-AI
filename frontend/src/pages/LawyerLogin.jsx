@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Shield, CheckCircle2 } from 'lucide-react';
 import { lawyerAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import './Auth.css';
 
 export default function LawyerLoginPage() {

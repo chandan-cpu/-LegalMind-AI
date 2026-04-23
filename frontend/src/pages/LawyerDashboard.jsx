@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { lawyerAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
 import { CheckCircle2, XCircle, Search, Clock3, CircleCheckBig, BriefcaseBusiness } from 'lucide-react';
 import './LawyerDashboard.css';
@@ -30,7 +30,7 @@ export default function LawyerDashboardPage() {
     availabilityStatus: 'offline',
   });
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
       const [profileRes, statsRes, requestsRes] = await Promise.all([
@@ -60,11 +60,11 @@ export default function LawyerDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   useEffect(() => {
     const token = localStorage.getItem('legalmind_lawyer_token');

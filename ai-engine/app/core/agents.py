@@ -31,12 +31,26 @@ def query_node(state: dict):
         include_metadata=True,
         filter={"document_id": doc_id} 
     )
+
+    matches = search_results.get("matches", [])
+    if not matches:
+        return {"final_answer": "I cannot find the answer in the provided document."}
+
+    # If all matches are weak, avoid fabricating answers.
+    top_score = max((m.get("score", 0) for m in matches), default=0)
+    if top_score < 0.2:
+        return {"final_answer": "I cannot find the answer in the provided document."}
     
     # STEP 3: Context (Mega String) banao
     context_text = ""
-    for match in search_results['matches']:
+    for match in matches:
         # Yaad hai? Text 'metadata' ke andar save kiya tha humne!
-        context_text += match['metadata']['text'] + "\n\n---\n\n"
+        chunk_text = match.get("metadata", {}).get("text", "")
+        if chunk_text:
+            context_text += chunk_text + "\n\n---\n\n"
+
+    if not context_text.strip():
+        return {"final_answer": "I cannot find the answer in the provided document."}
         
     # STEP 4: Prompt Engineering
     prompt = f"""You are an Expert Legal Assistant. 

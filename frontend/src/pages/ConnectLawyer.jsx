@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Sidebar from '../components/Sidebar';
 import { documentsAPI, lawyerAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
 import { UserCheck, Send, Clock } from 'lucide-react';
 import './ConnectLawyer.css';
@@ -128,7 +128,7 @@ export default function ConnectLawyerPage() {
     };
   }, [addToast, myRequests, navigate]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [availableRes, requestsRes, docsRes] = await Promise.all([
         lawyerAPI.listAvailable(),
@@ -138,19 +138,17 @@ export default function ConnectLawyerPage() {
       setLawyers(availableRes.data || []);
       setMyRequests(requestsRes.data || []);
       setDocuments(docsRes.data || []);
-      if (!selectedLawyerId && availableRes.data?.length) {
-        setSelectedLawyerId(availableRes.data[0]._id);
-      }
+      setSelectedLawyerId((current) => current || availableRes.data?.[0]?._id || '');
     } catch (error) {
       const finalMessage = error.response?.data?.message || 'Unable to load lawyers right now';
       setMessage(finalMessage);
       addToast(finalMessage, 'error');
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleCreateRequest = async () => {
     if (!selectedLawyerId || !issueSummary.trim()) {

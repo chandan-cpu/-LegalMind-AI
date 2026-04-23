@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { superAdminAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import './AdminApproval.css';
 
 export default function AdminApprovalPage() {
@@ -19,7 +19,7 @@ export default function AdminApprovalPage() {
 
   const { addToast } = useToast();
 
-  const loadLawyers = async () => {
+  const loadLawyers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await superAdminAPI.getAllLawyers();
@@ -31,13 +31,13 @@ export default function AdminApprovalPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     if (loggedIn) {
       loadLawyers();
     }
-  }, [loggedIn]);
+  }, [loggedIn, loadLawyers]);
 
   const handleLogin = async (event) => {
     event.preventDefault();

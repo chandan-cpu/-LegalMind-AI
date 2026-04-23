@@ -3,7 +3,7 @@ import { Send, FileText, Bot, User, Mic, MicOff, CheckCheck, ShieldCheck } from 
 import { io } from 'socket.io-client';
 import Sidebar from '../components/Sidebar';
 import { documentsAPI } from '../api/axios';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '../components/toastContext';
 import './Chat.css';
 
 const formatTime = (iso) => {

@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Upload, MessageSquare, ShieldAlert, FileText, Settings, LogOut, Scale, UserCheck } from 'lucide-react';
 import './Sidebar.css';
@@ -28,13 +29,13 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
-            <Icon size={20} />
+            {createElement(icon, { size: 20 })}
             <span>{label}</span>
           </NavLink>
         ))}
