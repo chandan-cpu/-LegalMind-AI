@@ -4,7 +4,10 @@ import { io } from 'socket.io-client';
 import { lawyerAPI } from '../api/axios';
 import { useToast } from '../components/toastContext';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
-import { CheckCircle2, XCircle, Search, Clock3, CircleCheckBig, BriefcaseBusiness } from 'lucide-react';
+import {
+  CheckCircle2, XCircle, Search, Clock3, CircleCheckBig,
+  BriefcaseBusiness, Upload, FileText, AlertTriangle, ShieldCheck,
+} from 'lucide-react';
 import './LawyerDashboard.css';
 
 export default function LawyerDashboardPage() {
@@ -30,6 +33,15 @@ export default function LawyerDashboardPage() {
     availabilityStatus: 'offline',
   });
 
+  // ── Verification document upload state ────────────────────────
+  const [verificationDocs, setVerificationDocs] = useState([]);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docProgress, setDocProgress] = useState(0);
+  const [docEntries, setDocEntries] = useState([
+    { docType: 'bar_council_certificate', file: null },
+    { docType: 'id_proof', file: null },
+  ]);
+
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,6 +65,7 @@ export default function LawyerDashboardPage() {
         languages: (profileData.languages || []).join(', '),
         availabilityStatus: profileData.availabilityStatus || 'offline',
       });
+      setVerificationDocs(profileData.verificationDocuments || []);
     } catch (error) {
       const finalMessage = error.response?.data?.message || 'Unable to load dashboard';
       setMessage(finalMessage);
@@ -168,6 +181,50 @@ export default function LawyerDashboardPage() {
     window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // ── Verification doc helpers ────────────────────────────────────
+  const handleDocFileChange = (idx, file) => {
+    setDocEntries((p) => p.map((e, i) => (i === idx ? { ...e, file } : e)));
+  };
+
+  const handleDocTypeChange = (idx, docType) => {
+    setDocEntries((p) => p.map((e, i) => (i === idx ? { ...e, docType } : e)));
+  };
+
+  const handleDocUpload = async () => {
+    const hasBarCouncil = docEntries.some((e) => e.docType === 'bar_council_certificate' && e.file);
+    const hasIdProof = docEntries.some((e) => e.docType === 'id_proof' && e.file);
+    if (!hasBarCouncil || !hasIdProof) {
+      addToast('Please select at least Bar Council Certificate and ID Proof files', 'error');
+      return;
+    }
+    setDocUploading(true);
+    setDocProgress(0);
+    try {
+      const formData = new FormData();
+      const types = [];
+      for (const entry of docEntries) {
+        if (entry.file) {
+          formData.append('verificationDocs', entry.file);
+          types.push(entry.docType);
+        }
+      }
+      formData.append('docTypes', JSON.stringify(types));
+      const res = await lawyerAPI.uploadVerificationDocs(formData, (evt) => {
+        setDocProgress(Math.round((evt.loaded * 100) / evt.total));
+      });
+      setVerificationDocs(res.data.verificationDocuments || []);
+      addToast('Verification documents uploaded!', 'success');
+      setDocEntries([
+        { docType: 'bar_council_certificate', file: null },
+        { docType: 'id_proof', file: null },
+      ]);
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Upload failed', 'error');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
   const filteredRequests = useMemo(() => {
     const normalizedQuery = requestQuery.trim().toLowerCase();
 
@@ -247,7 +304,92 @@ export default function LawyerDashboardPage() {
           <button className="gradient-btn" onClick={handleProfileUpdate}>Update Profile</button>
         </section>
 
+        {/* ── Verification Documents Card ── */}
         <section className="glass-card lawyer-card">
+          <h2 className="section-heading">
+            <ShieldCheck size={16} style={{ display: 'inline', marginRight: 6 }} />
+            Verification Documents
+          </h2>
+
+          {verificationDocs.length === 0 ? (
+            <div className="dash-no-docs-warn">
+              <AlertTriangle size={15} />
+              <div>
+                <strong>No documents uploaded yet.</strong>
+                <p>Upload your Bar Council Certificate and Government ID so the admin can verify you are a licensed lawyer.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="dash-docs-list">
+              {verificationDocs.map((doc, i) => (
+                <a
+                  key={i}
+                  href={doc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dash-doc-badge"
+                >
+                  <FileText size={13} />
+                  {doc.docType.replace(/_/g, ' ')}
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div className="dash-doc-upload-section">
+            <p className="dash-upload-label">Upload New Documents</p>
+            {docEntries.map((entry, idx) => (
+              <div key={idx} className="dash-doc-row">
+                <select
+                  className="input-field dash-doc-select"
+                  value={entry.docType}
+                  onChange={(e) => handleDocTypeChange(idx, e.target.value)}
+                >
+                  <option value="bar_council_certificate">Bar Council Certificate</option>
+                  <option value="id_proof">Government ID Proof</option>
+                  <option value="degree_certificate">Law Degree Certificate</option>
+                  <option value="other">Other</option>
+                </select>
+                <label className="dash-file-label">
+                  {entry.file ? (
+                    <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <CheckCircle2 size={13} /> {entry.file.name.slice(0, 22)}{entry.file.name.length > 22 ? '...' : ''}
+                    </span>
+                  ) : (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Upload size={13} /> Choose File
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleDocFileChange(idx, e.target.files[0] || null)}
+                  />
+                </label>
+              </div>
+            ))}
+
+            {docUploading && (
+              <div className="dash-progress-wrap">
+                <div className="dash-progress-bar" style={{ width: `${docProgress}%` }} />
+              </div>
+            )}
+
+            <button
+              className="gradient-btn"
+              onClick={handleDocUpload}
+              disabled={docUploading}
+              style={{ marginTop: 8 }}
+            >
+              <Upload size={14} />
+              {docUploading ? `Uploading ${docProgress}%...` : 'Submit Documents'}
+            </button>
+          </div>
+        </section>
+      </div> {/* End lawyer-grid */}
+
+      <section className="glass-card lawyer-card" style={{ marginTop: '24px' }}>
           <div className="requests-head">
             <h2 className="section-heading">Consultation Requests</h2>
             <div className="request-filter-row">
@@ -318,7 +460,6 @@ export default function LawyerDashboardPage() {
             ))}
           </div>
         </section>
-      </div>
     </div>
   );
 }

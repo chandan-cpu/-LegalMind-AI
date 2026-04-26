@@ -18,6 +18,7 @@ export default function ConsultationChatPage({ actor = 'user' }) {
   const [socketReady, setSocketReady] = useState(false);
   const [isPeerTyping, setIsPeerTyping] = useState(false);
   const [chatEnabled, setChatEnabled] = useState(true);
+  const [peerName, setPeerName] = useState('');
   const socketRef = useRef(null);
   const endRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -48,6 +49,12 @@ export default function ConsultationChatPage({ actor = 'user' }) {
         const activeRequest = (requestsRes.data || []).find((item) => item._id === requestId);
         if (activeRequest) {
           setChatEnabled(!['rejected', 'cancelled', 'completed'].includes(activeRequest.status));
+          // Show peer name: lawyer sees client name, client sees lawyer name
+          if (actor === 'lawyer') {
+            setPeerName(activeRequest.userId?.name || 'Client');
+          } else {
+            setPeerName(activeRequest.lawyerId?.name || 'Lawyer');
+          }
         }
       } catch (error) {
         const finalMessage = error.response?.data?.message || 'Unable to load chat history';
@@ -201,8 +208,14 @@ export default function ConsultationChatPage({ actor = 'user' }) {
         <div className="consult-chat-header">
           <button className="outline-btn" onClick={goBack}><ArrowLeft size={16} /> Back</button>
           <div>
-            <h1>Consultation Chat</h1>
-            <p>Request: {requestId}</p>
+            <h1>
+              {peerName
+                ? (actor === 'lawyer'
+                    ? `Chat with Client: ${peerName}`
+                    : `Chat with Lawyer: ${peerName}`)
+                : 'Consultation Chat'}
+            </h1>
+            <p>Request ID: {requestId}</p>
           </div>
           <span className={`chat-status ${socketReady ? 'online' : 'offline'}`}>
             {socketReady ? 'Live' : 'Offline'}

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const { protect } = require('../middleware/authMiddleware');
 const { lawyerProtect } = require('../middleware/lawyerAuthMiddleware');
+const { upload } = require('../middleware/uploadMiddleware');
 
 const {
     registerLawyer,
@@ -19,6 +20,7 @@ const {
     getLawyerDashboardStats,
     getUserConsultationMessages,
     getLawyerConsultationMessages,
+    uploadVerificationDocuments,
 } = require('../controllers/lawyerController');
 
 router.post('/auth/register', registerLawyer);
@@ -38,5 +40,6 @@ router.get('/admin/requests', lawyerProtect, getLawyerConsultationRequests);
 router.get('/admin/requests/:requestId/messages', lawyerProtect, getLawyerConsultationMessages);
 router.patch('/admin/requests/:requestId/status', lawyerProtect, updateConsultationStatus);
 router.get('/admin/dashboard/stats', lawyerProtect, getLawyerDashboardStats);
+router.post('/admin/verification-docs', lawyerProtect, upload.array('verificationDocs', 5), uploadVerificationDocuments);
 
 module.exports = router;

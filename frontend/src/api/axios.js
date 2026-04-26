@@ -116,6 +116,11 @@ export const lawyerAPI = {
   getLawyerConsultationMessages: (requestId) => lawyerApi.get(`/lawyers/admin/requests/${requestId}/messages`),
   updateRequestStatus: (requestId, payload) => lawyerApi.patch(`/lawyers/admin/requests/${requestId}/status`, payload),
   adminStats: () => lawyerApi.get('/lawyers/admin/dashboard/stats'),
+  uploadVerificationDocs: (formData, onProgress) =>
+    lawyerApi.post('/lawyers/admin/verification-docs', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress,
+    }),
 };
 
 export const superAdminAPI = {

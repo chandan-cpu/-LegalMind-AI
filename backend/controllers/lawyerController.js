@@ -4,6 +4,8 @@ const ConsultationMessage = require('../models/ConsultationMessage');
 const Document = require('../models/Document');
 const generateLawyerToken = require('../utils/generateLawyerToken');
 const mongoose = require('mongoose');
+const { uploadToCloudinary } = require('../middleware/uploadMiddleware');
+const fs = require('fs');
 
 const sanitizeList = (value) => {
     if (!value) return [];
@@ -444,6 +446,69 @@ const getLawyerConsultationMessages = async (req, res) => {
     }
 };
 
+const uploadVerificationDocuments = async (req, res) => {
+    try {
+        // req.lawyer comes from lawyerProtect middleware
+        const lawyer = await Lawyer.findById(req.lawyer._id);
+        if (!lawyer) {
+            return res.status(404).json({ message: 'Lawyer not found' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        const ALLOWED_DOC_TYPES = ['bar_council_certificate', 'id_proof', 'degree_certificate', 'other'];
+
+        // docTypes comes as JSON array string or comma-separated from frontend
+        let docTypesRaw = req.body.docTypes;
+        let docTypes = [];
+        if (docTypesRaw) {
+            try {
+                docTypes = JSON.parse(docTypesRaw);
+            } catch {
+                docTypes = String(docTypesRaw).split(',').map((t) => t.trim());
+            }
+        }
+
+        const uploadedDocs = [];
+
+        for (let i = 0; i < req.files.length; i++) {
+            const file = req.files[i];
+            const docType = ALLOWED_DOC_TYPES.includes(docTypes[i]) ? docTypes[i] : 'other';
+
+            try {
+                const result = await uploadToCloudinary(file.path, {
+                    folder: 'legalmind-lawyer-verification',
+                    resource_type: 'auto',
+                    public_id: `lawyer_${lawyer._id}_${docType}_${Date.now()}`,
+                });
+
+                uploadedDocs.push({
+                    docType,
+                    fileUrl: result.secure_url,
+                    cloudinaryPublicId: result.public_id,
+                    originalName: file.originalname,
+                    uploadedAt: new Date(),
+                });
+            } finally {
+                // Clean up local temp file
+                try { fs.unlinkSync(file.path); } catch (_) { /* ignore */ }
+            }
+        }
+
+        lawyer.verificationDocuments.push(...uploadedDocs);
+        await lawyer.save();
+
+        return res.status(201).json({
+            message: `${uploadedDocs.length} document(s) uploaded successfully`,
+            verificationDocuments: lawyer.verificationDocuments,
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     registerLawyer,
     loginLawyer,
@@ -459,4 +524,5 @@ module.exports = {
     getLawyerDashboardStats,
     getUserConsultationMessages,
     getLawyerConsultationMessages,
+    uploadVerificationDocuments,
 };

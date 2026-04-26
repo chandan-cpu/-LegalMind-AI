@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-           const res = await authAPI.login(form.email, form.password);
+      const res = await authAPI.login(form.email, form.password);
       localStorage.setItem('legalmind_token', res.data.token);
       localStorage.setItem('legalmind_name', res.data.name);     // <-- ADDED
       localStorage.setItem('legalmind_email', res.data.email);   // <-- ADDED

@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import { documentsAPI, lawyerAPI } from '../api/axios';
 import { useToast } from '../components/toastContext';
 import { playNotificationTone, startTitleBlink } from '../utils/realtimeNotify';
-import { UserCheck, Send, Clock } from 'lucide-react';
+import { UserCheck, Send, Clock, MessageCircle, Phone, MessageSquare, Users, FileText, CalendarClock, MapPin, BadgeIndianRupee, Star, ChevronDown } from 'lucide-react';
 import './ConnectLawyer.css';
 
 export default function ConnectLawyerPage() {
@@ -18,8 +18,11 @@ export default function ConnectLawyerPage() {
   const [issueSummary, setIssueSummary] = useState('');
   const [preferredMode, setPreferredMode] = useState('chat');
   const [preferredTime, setPreferredTime] = useState('');
+  const [rawDateTime, setRawDateTime] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const REQUESTS_PAGE_SIZE = 3;
+  const [visibleCount, setVisibleCount] = useState(REQUESTS_PAGE_SIZE);
   const { addToast } = useToast();
   const blinkStopRef = useRef(null);
 
@@ -27,6 +30,26 @@ export default function ConnectLawyerPage() {
     () => lawyers.find((item) => item._id === selectedLawyerId),
     [lawyers, selectedLawyerId]
   );
+
+  // Format datetime-local value → readable string for backend
+  const formatDateTime = (isoString) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    return d.toLocaleString('en-IN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Min datetime = now (prevent past selections)
+  const minDateTime = new Date(Date.now() + 60 * 1000)
+    .toISOString()
+    .slice(0, 16);
 
   const redirectToWhatsApp = (lawyer, summary, timeValue) => {
     const rawPhone = lawyer?.whatsappNumber || lawyer?.phone || '';
@@ -137,6 +160,7 @@ export default function ConnectLawyerPage() {
       ]);
       setLawyers(availableRes.data || []);
       setMyRequests(requestsRes.data || []);
+      setVisibleCount(REQUESTS_PAGE_SIZE); // reset pagination on reload
       setDocuments(docsRes.data || []);
       setSelectedLawyerId((current) => current || availableRes.data?.[0]?._id || '');
     } catch (error) {
@@ -174,6 +198,7 @@ export default function ConnectLawyerPage() {
       setIssueSummary('');
       setPreferredMode('chat');
       setPreferredTime('');
+      setRawDateTime('');
       setSelectedDocumentId('');
       setMessage('Consultation request submitted successfully');
       addToast('Consultation request submitted successfully', 'success');
@@ -203,86 +228,202 @@ export default function ConnectLawyerPage() {
         </div>
 
         <div className="connect-grid">
-          <section className="glass-card connect-card">
-            <h2 className="section-heading">Create Consultation Request</h2>
-
-            <label className="input-label">Select Lawyer</label>
-            <select className="input-field" value={selectedLawyerId} onChange={(e) => setSelectedLawyerId(e.target.value)}>
-              <option value="">Select one</option>
-              {lawyers.map((lawyer) => (
-                <option key={lawyer._id} value={lawyer._id}>
-                  {lawyer.name} | {lawyer.city || 'NA'} | Fee: {lawyer.consultationFee || 0}
-                </option>
-              ))}
-            </select>
-
-            {selectedLawyer && (
-              <div className="selected-lawyer-box">
-                <div className="selected-row">
-                  <UserCheck size={16} /> {selectedLawyer.name}
-                </div>
-                <p className="selected-meta">
-                  Specialization: {(selectedLawyer.specialization || []).join(', ') || 'General'}
-                </p>
-                <p className="selected-meta">Status: {selectedLawyer.availabilityStatus}</p>
-              </div>
-            )}
-
-            <label className="input-label">Issue Summary</label>
-            <textarea
-              className="input-field"
-              rows={4}
-              placeholder="Explain your legal issue in short"
-              value={issueSummary}
-              onChange={(e) => setIssueSummary(e.target.value)}
-            />
-
-            <label className="input-label">Attach PDF (Optional)</label>
-            <select
-              className="input-field"
-              value={selectedDocumentId}
-              onChange={(e) => setSelectedDocumentId(e.target.value)}
-            >
-              <option value="">No document</option>
-              {documents.map((doc) => (
-                <option key={doc._id} value={doc._id}>
-                  {doc.title}
-                </option>
-              ))}
-            </select>
-
-            <div className="row-2">
+          <section className="glass-card connect-card create-request-card">
+            {/* ── Header ── */}
+            <div className="cr-header">
+              <div className="cr-header-icon"><UserCheck size={20} /></div>
               <div>
-                <label className="input-label">Preferred Mode</label>
-                <select className="input-field" value={preferredMode} onChange={(e) => setPreferredMode(e.target.value)}>
-                  <option value="chat">Chat</option>
-                  <option value="call">Call</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="in-person">In Person</option>
-                </select>
-              </div>
-              <div>
-                <label className="input-label">Preferred Time</label>
-                <input
-                  className="input-field"
-                  placeholder="e.g. Tomorrow 5PM"
-                  value={preferredTime}
-                  onChange={(e) => setPreferredTime(e.target.value)}
-                />
+                <h2 className="section-heading" style={{ marginBottom: 2 }}>Create Consultation Request</h2>
+                <p className="cr-subtitle">Connect with a verified lawyer in minutes</p>
               </div>
             </div>
 
-            <button className="gradient-btn" onClick={handleCreateRequest} disabled={busy}>
-              <Send size={16} /> {busy ? 'Submitting...' : 'Submit Request'}
+            <div className="cr-divider" />
+
+            {/* ── Step 1: Select Lawyer ── */}
+            <div className="cr-step">
+              <span className="cr-step-num">1</span>
+              <label className="cr-step-label">Choose Your Lawyer</label>
+            </div>
+
+            <div className="cr-select-wrap">
+              <ChevronDown size={15} className="cr-select-icon" />
+              <select
+                className="input-field cr-select"
+                value={selectedLawyerId}
+                onChange={(e) => setSelectedLawyerId(e.target.value)}
+              >
+                <option value="">— Select a lawyer —</option>
+                {lawyers.map((lawyer) => (
+                  <option key={lawyer._id} value={lawyer._id}>
+                    {lawyer.name} · {lawyer.city || 'NA'} · ₹{lawyer.consultationFee || 0}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedLawyer && (
+              <div className="lawyer-preview-card">
+                <div className="lawyer-avatar">
+                  {selectedLawyer.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="lawyer-preview-info">
+                  <p className="lawyer-preview-name">
+                    <UserCheck size={14} /> {selectedLawyer.name}
+                    <span className={`avail-dot avail-${selectedLawyer.availabilityStatus}`} />
+                  </p>
+                  <p className="lawyer-preview-meta">
+                    <MapPin size={11} /> {selectedLawyer.city || 'Location N/A'}
+                  </p>
+                  <p className="lawyer-preview-meta">
+                    <Star size={11} /> {(selectedLawyer.specialization || []).join(', ') || 'General Practice'}
+                  </p>
+                </div>
+                <div className="lawyer-preview-fee">
+                  <BadgeIndianRupee size={13} />
+                  <span>{selectedLawyer.consultationFee || 0}</span>
+                  <small>/ session</small>
+                </div>
+              </div>
+            )}
+
+            <div className="cr-divider" />
+
+            {/* ── Step 2: Issue Summary ── */}
+            <div className="cr-step">
+              <span className="cr-step-num">2</span>
+              <label className="cr-step-label">Describe Your Issue</label>
+            </div>
+
+            <div className="cr-textarea-wrap">
+              <textarea
+                className="input-field cr-textarea"
+                rows={4}
+                maxLength={500}
+                placeholder="Briefly explain your legal concern so the lawyer can prepare..."
+                value={issueSummary}
+                onChange={(e) => setIssueSummary(e.target.value)}
+              />
+              <span className={`cr-char-count ${issueSummary.length > 450 ? 'cr-char-warn' : ''}`}>
+                {issueSummary.length} / 500
+              </span>
+            </div>
+
+            <div className="cr-divider" />
+
+            {/* ── Step 3: Preferred Mode ── */}
+            <div className="cr-step">
+              <span className="cr-step-num">3</span>
+              <label className="cr-step-label">Preferred Contact Mode</label>
+            </div>
+
+            <div className="mode-selector">
+              {[
+                { value: 'chat',      label: 'Chat',      Icon: MessageCircle },
+                { value: 'call',      label: 'Call',      Icon: Phone },
+                { value: 'whatsapp', label: 'WhatsApp',  Icon: MessageSquare },
+                { value: 'in-person',label: 'In Person', Icon: Users },
+              ].map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`mode-chip ${preferredMode === value ? 'mode-chip-active' : ''}`}
+                  onClick={() => setPreferredMode(value)}
+                >
+                  <Icon size={15} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="cr-divider" />
+
+            {/* ── Step 4: Time & Document ── */}
+            <div className="cr-step">
+              <span className="cr-step-num">4</span>
+              <label className="cr-step-label">Schedule & Attach</label>
+            </div>
+
+            <div className="row-2" style={{ marginBottom: 0 }}>
+              <div>
+                <label className="input-label" style={{ marginTop: 0 }}>
+                  <CalendarClock size={13} style={{ display:'inline', marginRight: 4 }} />
+                  Preferred Time
+                </label>
+                <div className="cr-datetime-wrap">
+                  <input
+                    type="datetime-local"
+                    className="input-field cr-datetime-input"
+                    value={rawDateTime}
+                    min={minDateTime}
+                    onChange={(e) => {
+                      setRawDateTime(e.target.value);
+                      setPreferredTime(formatDateTime(e.target.value));
+                    }}
+                  />
+                  {preferredTime && (
+                    <span className="cr-datetime-preview">
+                      <CalendarClock size={12} />
+                      {preferredTime}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="input-label" style={{ marginTop: 0 }}>
+                  <FileText size={13} style={{ display:'inline', marginRight: 4 }} />
+                  Attach PDF (Optional)
+                </label>
+                <div className="cr-select-wrap">
+                  <ChevronDown size={15} className="cr-select-icon" />
+                  <select
+                    className="input-field cr-select"
+                    value={selectedDocumentId}
+                    onChange={(e) => setSelectedDocumentId(e.target.value)}
+                  >
+                    <option value="">No document</option>
+                    {documents.map((doc) => (
+                      <option key={doc._id} value={doc._id}>{doc.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="cr-divider" />
+
+            {/* ── Submit ── */}
+            <button
+              className={`gradient-btn cr-submit-btn ${busy ? 'cr-submitting' : ''}`}
+              onClick={handleCreateRequest}
+              disabled={busy}
+            >
+              {busy ? (
+                <><span className="cr-spinner" /> Submitting...</>
+              ) : (
+                <><Send size={16} /> Send Request</>  
+              )}
             </button>
-            {message && <p className="status-text">{message}</p>}
+
+            {message && (
+              <p className={`status-text cr-status ${message.toLowerCase().includes('success') ? 'cr-status-ok' : 'cr-status-err'}`}>
+                {message}
+              </p>
+            )}
           </section>
 
           <section className="glass-card connect-card">
-            <h2 className="section-heading">My Consultation Requests</h2>
+            <div className="requests-section-head">
+              <h2 className="section-heading">My Consultation Requests</h2>
+              {myRequests.length > 0 && (
+                <span className="requests-count-badge">
+                  {Math.min(visibleCount, myRequests.length)} / {myRequests.length}
+                </span>
+              )}
+            </div>
             <div className="requests-list">
               {myRequests.length === 0 && <p className="empty-text">No consultation requests yet.</p>}
-              {myRequests.map((item) => (
+              {myRequests.slice(0, visibleCount).map((item) => (
                 <div className="request-item" key={item._id}>
                   <div className="request-title">
                     {item.lawyerId?.name || 'Lawyer'} | {item.status}
@@ -330,6 +471,28 @@ export default function ConnectLawyerPage() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination controls */}
+            {myRequests.length > REQUESTS_PAGE_SIZE && (
+              <div className="requests-pagination">
+                {visibleCount < myRequests.length && (
+                  <button
+                    className="show-more-btn"
+                    onClick={() => setVisibleCount((c) => c + REQUESTS_PAGE_SIZE)}
+                  >
+                    Show More ({myRequests.length - visibleCount} remaining)
+                  </button>
+                )}
+                {visibleCount > REQUESTS_PAGE_SIZE && (
+                  <button
+                    className="show-less-btn"
+                    onClick={() => setVisibleCount(REQUESTS_PAGE_SIZE)}
+                  >
+                    Show Less
+                  </button>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </main>

@@ -100,9 +100,37 @@ const lawyerSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    verificationDocuments: {
+        type: [
+            {
+                docType: {
+                    type: String,
+                    enum: ['bar_council_certificate', 'id_proof', 'degree_certificate', 'other'],
+                    default: 'other',
+                },
+                fileUrl: {
+                    type: String,
+                    trim: true,
+                },
+                cloudinaryPublicId: {
+                    type: String,
+                    trim: true,
+                },
+                originalName: {
+                    type: String,
+                    trim: true,
+                },
+                uploadedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
+        default: [],
+    },
 }, { timestamps: true });
 
-lawyerSchema.pre('save', async function() {
+lawyerSchema.pre('save', async function () {
     if (!this.isModified('password')) {
         return;
     }
@@ -111,7 +139,7 @@ lawyerSchema.pre('save', async function() {
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-lawyerSchema.methods.matchPassword = async function(enteredPassword) {
+lawyerSchema.methods.matchPassword = async function (enteredPassword) {
     return bcrypt.compare(enteredPassword, this.password);
 };
 

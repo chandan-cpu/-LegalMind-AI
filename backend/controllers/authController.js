@@ -20,16 +20,16 @@ const registerUser = async (req, res) => {
             password
         });
         if (!user) {
-    return res.status(400).json({ message: "User creation failed" });
-}
-    
-            res.status(201).json({
-                _id: user.id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id) // Account banne pe token free
-            });
-    
+            return res.status(400).json({ message: "User creation failed" });
+        }
+
+        res.status(201).json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            token: generateToken(user._id) // Account banne pe token free
+        });
+
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
