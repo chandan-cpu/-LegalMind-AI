@@ -44,8 +44,8 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+        origin: 'https://legalmind-ai-br2h.onrender.com',
+        methods: ['GET', 'POST','PUT','DELETE','PATCH','OPTIONS']
     }
 });
 
