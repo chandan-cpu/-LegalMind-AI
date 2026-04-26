@@ -1,10 +1,14 @@
 import os
-from pinecone_text.sparse import BM25Encoder
-bm25 = BM25Encoder().default()
 from langchain_groq import ChatGroq
-from app.services.rag_service import embedder, pinecone_index
+from app.services.rag_service import embedder, pinecone_index, USE_SPARSE_HYBRID
 from app.models.schemas import RiskFinding
 from dotenv import load_dotenv
+
+if USE_SPARSE_HYBRID:
+    from pinecone_text.sparse import BM25Encoder
+    bm25 = BM25Encoder().default()
+else:
+    bm25 = None
 
 load_dotenv()
 
@@ -25,18 +29,18 @@ def query_node(state: dict):
     # STEP 1: Question ko Vector banao
     query_vector = embedder.encode(query).tolist()
 
-    # STEP 1.5: Question ko Sparse Vector banao (Keywords ke liye) 
-    sparse_query_vector = bm25.encode_queries(query)
-    
     # STEP 2: Pinecone mein Semantic Search karo
     # Notice the filter! Hum strictly usi doc mein search kar rahe hain.
-    search_results = pinecone_index.query(
-        vector=query_vector,
-        sparse_vector=sparse_query_vector,
-        top_k=5,
-        include_metadata=True,
-        filter={"document_id": doc_id} 
-    )
+    query_kwargs = {
+        "vector": query_vector,
+        "top_k": 5,
+        "include_metadata": True,
+        "filter": {"document_id": doc_id},
+    }
+    if bm25 is not None:
+        query_kwargs["sparse_vector"] = bm25.encode_queries(query)
+
+    search_results = pinecone_index.query(**query_kwargs)
 
     matches = search_results.get("matches", [])
     if not matches:
