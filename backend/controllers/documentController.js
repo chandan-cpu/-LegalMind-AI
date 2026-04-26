@@ -3,6 +3,8 @@ const axios = require("axios");
 const { uploadToCloudinary } = require("../middleware/uploadMiddleware");
 const path = require("path");
 
+const AI_ENGINE_URL = process.env.AI_ENGINE_URL || "http://127.0.0.1:8000";
+
 // 1. Get All Documents
 const getDocuments = async (req, res) => {
     try {
@@ -63,7 +65,7 @@ const uploadDocument = async (req, res) => {
             data.append('document_id', newDoc._id.toString());
 
             const pythonResponse = await axios.post(
-                "http://127.0.0.1:8000/ai/ingest-file",
+                `${AI_ENGINE_URL}/ai/ingest-file`,
                 data,
                 {
                     headers: {
@@ -104,7 +106,7 @@ const queryDocument = async (req, res) => {
         const { document_id, user_query } = req.body;
 
         const pythonResponse = await axios.post(
-            "http://127.0.0.1:8000/ai/query",
+            `${AI_ENGINE_URL}/ai/query`,
             { document_id, user_query }
         );
 
@@ -122,7 +124,7 @@ const analyzeRisk = async (req, res) => {
         const { document_id } = req.body;
 
         const pythonResponse = await axios.post(
-            "http://127.0.0.1:8000/ai/analyze-risk",
+            `${AI_ENGINE_URL}/ai/analyze-risk`,
             { document_id }
         );
 
@@ -140,7 +142,7 @@ const getSummary = async (req, res) => {
         const { document_id } = req.body;
 
         const pythonResponse = await axios.post(
-            "http://127.0.0.1:8000/ai/summary",
+            `${AI_ENGINE_URL}/ai/summary`,
             { document_id }
         );
 
