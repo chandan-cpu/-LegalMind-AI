@@ -1,7 +1,6 @@
 import os
 import requests
 import fitz  # PyMuPDF
-from pinecone_text.sparse import BM25Encoder
 import nltk
 nltk.download('punkt') # First time run me download hoga
 from sentence_transformers import SentenceTransformer
@@ -15,7 +14,8 @@ load_dotenv()
 # Setup
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-pinecone_index = pc.Index("ragpipeline")
+pinecone_index = pc.Index("legalmind-index")
+USE_SPARSE_HYBRID = os.getenv("PINECONE_USE_SPARSE_HYBRID", "false").lower() == "true"
 
 def process_and_ingest_pdf_bytes(file_bytes: bytes, document_id: str):
     print(f"--> Processing doc: {document_id}")
@@ -36,29 +36,31 @@ def process_and_ingest_pdf_bytes(file_bytes: bytes, document_id: str):
 
     if not chunks_list:
         raise ValueError("No text chunks generated from PDF")
-     # BM25 tf-idf encoder setup
-    bm25 = BM25Encoder().default()
-    
-    # Is document ke saare terms read karke tf-idf format fit karo
-    bm25.fit(chunks_list)
+
+    bm25 = None
+    if USE_SPARSE_HYBRID:
+        from pinecone_text.sparse import BM25Encoder
+        # BM25 tf-idf encoder setup
+        bm25 = BM25Encoder().default()
+        # Is document ke saare terms read karke tf-idf format fit karo
+        bm25.fit(chunks_list)
 
     pinecone_vectors = []
     for i, chunk_text in enumerate(chunks_list):
         # Ab chunk_text seedha ek string hai, usko encode karo
         vector = embedder.encode(chunk_text).tolist()
-        sparse_vector = bm25.encode_documents([chunk_text])[0]
         unique_id = f"{document_id}_chunk_{i}"
         metadata = {"document_id": document_id, "text": chunk_text}
-        
-        pinecone_vectors.append((unique_id, vector, metadata))
-        
-    # Pinecone Cloud mein push karo
-    pinecone_vectors.append({
-            "id": unique_id, 
-            "values": vector, 
-            "sparse_values": sparse_vector,  # 👈 Hybrid Magic here
-            "metadata": metadata
-        })
+
+        item = {
+            "id": unique_id,
+            "values": vector,
+            "metadata": metadata,
+        }
+        if bm25 is not None:
+            item["sparse_values"] = bm25.encode_documents([chunk_text])[0]
+        pinecone_vectors.append(item)
+
     pinecone_index.upsert(vectors=pinecone_vectors)
     return len(chunks_list)
 
