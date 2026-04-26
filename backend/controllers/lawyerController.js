@@ -6,7 +6,7 @@ const generateLawyerToken = require('../utils/generateLawyerToken');
 const mongoose = require('mongoose');
 const { uploadToCloudinary } = require('../middleware/uploadMiddleware');
 const fs = require('fs');
-const { sendLawyerOTP } = require('./lawyerOtpController');
+const { issueLawyerOTP } = require('./lawyerOtpController');
 
 const sanitizeList = (value) => {
     if (!value) return [];
@@ -55,19 +55,39 @@ const addUnreadCount = async (requests, actorType) => {
 const registerLawyer = async (req, res) => {
     try {
         const { name, email, password, phone, whatsappNumber, specialization, barCouncilId, city } = req.body;
+        const normalizedEmail = String(email || '').trim().toLowerCase();
 
-        if (!name || !email || !password) {
+        if (!name || !normalizedEmail || !password) {
             return res.status(400).json({ message: 'name, email and password are required' });
         }
 
-        const lawyerExists = await Lawyer.findOne({ email });
+        const lawyerExists = await Lawyer.findOne({ email: normalizedEmail });
         if (lawyerExists) {
+            if (!lawyerExists.isEmailVerified) {
+                let otpSent = true;
+                try {
+                    await issueLawyerOTP(normalizedEmail);
+                } catch (otpError) {
+                    otpSent = false;
+                    console.error('Existing lawyer OTP resend failed:', otpError.message);
+                }
+
+                return res.status(200).json({
+                    message: otpSent
+                        ? 'Lawyer account already exists and OTP has been resent.'
+                        : 'Lawyer account already exists, but OTP could not be sent. Please try again.',
+                    email: lawyerExists.email,
+                    otpSent,
+                    existingAccount: true,
+                });
+            }
+
             return res.status(400).json({ message: 'Lawyer already exists with this email' });
         }
 
         const lawyer = await Lawyer.create({
             name,
-            email,
+            email: normalizedEmail,
             password,
             phone,
             whatsappNumber,
@@ -76,8 +96,21 @@ const registerLawyer = async (req, res) => {
             city,
         });
 
-        // Send OTP for email verification
-        await sendLawyerOTP({ body: { email } }, res);
+        let otpSent = true;
+        try {
+            await issueLawyerOTP(normalizedEmail);
+        } catch (otpError) {
+            otpSent = false;
+            console.error('Lawyer registration OTP dispatch failed:', otpError.message);
+        }
+
+        return res.status(201).json({
+            message: otpSent
+                ? 'Lawyer registered successfully. OTP sent to your email.'
+                : 'Lawyer registered successfully, but OTP could not be sent. Please request OTP again.',
+            email: lawyer.email,
+            otpSent,
+        });
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }

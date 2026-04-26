@@ -1,39 +1,52 @@
 const sendEmail = require('../utils/sendEmail');
 const Lawyer = require('../models/Lawyer');
 const crypto = require('crypto');
+const generateLawyerToken = require('../utils/generateLawyerToken');
 
 let storeResetOTP = {};
 let verifiedEmails = {};
+
+const issueLawyerOTP = async (email) => {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const lawyer = await Lawyer.findOne({ email: normalizedEmail });
+    if (!lawyer) {
+        const notFoundError = new Error('Lawyer not found');
+        notFoundError.statusCode = 404;
+        throw notFoundError;
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    lawyer.otp = otp;
+    lawyer.otpExpire = Date.now() + 5 * 60 * 1000;
+    await lawyer.save();
+
+    await sendEmail(
+        lawyer.email,
+        'LegalMind AI — Verify Your Lawyer Account',
+        `Your OTP is ${otp}. Please verify your email within 5 minutes. If you did not request this, please ignore this email.`
+    );
+
+    return {
+        email: lawyer.email,
+    };
+};
 
 // Send OTP (called internally after registration)
 const sendLawyerOTP = async (req, res) => {
     try {
         const { email } = req.body;
-        const lawyer = await Lawyer.findOne({ email });
-        if (!lawyer) {
-            return res.status(404).json({ message: 'Lawyer not found' });
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000);
-        lawyer.otp = otp;
-        lawyer.otpExpire = Date.now() + 5 * 60 * 1000;
-        await lawyer.save();
-
-        await sendEmail(
-            lawyer.email,
-            'LegalMind AI — Verify Your Lawyer Account',
-            `Your OTP is ${otp}. Please verify your email within 5 minutes. If you did not request this, please ignore this email.`
-        );
+        const result = await issueLawyerOTP(email);
 
         if (res && !res.headersSent) {
             return res.status(200).json({
                 message: 'OTP sent successfully to your email',
-                email: lawyer.email,
+                email: result.email,
             });
         }
     } catch (error) {
         if (res && !res.headersSent) {
-            return res.status(500).json({ message: 'Server Error: ' + error.message });
+            const statusCode = error.statusCode || 500;
+            return res.status(statusCode).json({ message: 'Server Error: ' + error.message });
         }
         throw error;
     }
@@ -43,7 +56,8 @@ const sendLawyerOTP = async (req, res) => {
 const verifyLawyerOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        const lawyer = await Lawyer.findOne({ email });
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const lawyer = await Lawyer.findOne({ email: normalizedEmail });
         if (!lawyer) return res.status(404).json({ message: 'Lawyer not found' });
 
         if (lawyer.otp !== Number(otp) || lawyer.otpExpire < Date.now()) {
@@ -55,9 +69,17 @@ const verifyLawyerOTP = async (req, res) => {
         lawyer.otpExpire = undefined;
         await lawyer.save();
 
-        res.status(200).json({ message: 'Email verified successfully' });
+        return res.status(200).json({
+            message: 'Email verified successfully',
+            token: generateLawyerToken(lawyer._id),
+            lawyer: {
+                _id: lawyer._id,
+                email: lawyer.email,
+                verificationStatus: lawyer.verificationStatus,
+            },
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 };
 
@@ -132,4 +154,4 @@ const resetLawyerPassword = async (req, res) => {
     }
 };
 
-module.exports = { sendLawyerOTP, verifyLawyerOTP, sendLawyerResetOTP, verifyLawyerResetOTP, resetLawyerPassword };
+module.exports = { issueLawyerOTP, sendLawyerOTP, verifyLawyerOTP, sendLawyerResetOTP, verifyLawyerResetOTP, resetLawyerPassword };

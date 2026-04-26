@@ -75,8 +75,17 @@ export default function LawyerRegisterPage() {
     setError('');
 
     try {
-      await lawyerAPI.register(form);
-      addToast('Account created! Please verify your email OTP.', 'success');
+      const response = await lawyerAPI.register(form);
+      const { otpSent, existingAccount, message } = response?.data || {};
+
+      if (otpSent === false) {
+        addToast(message || 'Account created, but OTP could not be sent. Please resend OTP.', 'error');
+      } else if (existingAccount) {
+        addToast(message || 'Account exists. OTP resent to your email.', 'info');
+      } else {
+        addToast(message || 'Account created! Please verify your email OTP.', 'success');
+      }
+
       setShowOtpModal(true);
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed';
@@ -91,7 +100,14 @@ export default function LawyerRegisterPage() {
     e.preventDefault();
     setVerifyLoading(true);
     try {
-      await lawyerAPI.verifyOTP(form.email, otp);
+      const response = await lawyerAPI.verifyOTP(form.email, otp);
+      const verifiedToken = response?.data?.token;
+
+      if (verifiedToken) {
+        localStorage.setItem('legalmind_lawyer_token', verifiedToken);
+        setLawyerToken(verifiedToken);
+      }
+
       addToast('Email verified! Now upload your verification documents.', 'success');
       setShowOtpModal(false);
       setStep(2);
@@ -100,6 +116,16 @@ export default function LawyerRegisterPage() {
       addToast(msg, 'error');
     } finally {
       setVerifyLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await lawyerAPI.sendOTP(form.email);
+      addToast('OTP resent to your email.', 'success');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to resend OTP';
+      addToast(msg, 'error');
     }
   };
 
@@ -374,6 +400,11 @@ export default function LawyerRegisterPage() {
               <h2>Verify Email</h2>
             </div>
             <p className="modal-subtitle">Enter the 6-digit OTP sent to <strong>{form.email}</strong></p>
+            {!!lawyerToken && (
+              <p className="auth-subtitle" style={{ marginTop: '0.4rem' }}>
+                Session verified. You can upload documents securely.
+              </p>
+            )}
             <form onSubmit={handleVerifyOtp} className="auth-form" style={{ marginTop: '1.5rem' }}>
               <div className="input-group">
                 <KeyRound size={18} className="input-icon" />
@@ -389,6 +420,9 @@ export default function LawyerRegisterPage() {
               </div>
               <button type="submit" className="gradient-btn auth-submit" disabled={verifyLoading || otp.length < 6}>
                 {verifyLoading ? 'Verifying...' : 'Verify & Continue'}
+              </button>
+              <button type="button" className="outline-btn auth-submit" onClick={handleResendOtp} disabled={verifyLoading}>
+                Resend OTP
               </button>
             </form>
           </div>
