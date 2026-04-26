@@ -6,6 +6,7 @@ const generateLawyerToken = require('../utils/generateLawyerToken');
 const mongoose = require('mongoose');
 const { uploadToCloudinary } = require('../middleware/uploadMiddleware');
 const fs = require('fs');
+const { sendLawyerOTP } = require('./lawyerOtpController');
 
 const sanitizeList = (value) => {
     if (!value) return [];
@@ -75,12 +76,8 @@ const registerLawyer = async (req, res) => {
             city,
         });
 
-        return res.status(201).json({
-            _id: lawyer._id,
-            name: lawyer.name,
-            email: lawyer.email,
-            token: generateLawyerToken(lawyer._id),
-        });
+        // Send OTP for email verification
+        await sendLawyerOTP({ body: { email } }, res);
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -93,6 +90,11 @@ const loginLawyer = async (req, res) => {
         const lawyer = await Lawyer.findOne({ email });
         if (!lawyer || !(await lawyer.matchPassword(password))) {
             return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Check email verification
+        if (!lawyer.isEmailVerified) {
+            return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
         }
 
         if (lawyer.verificationStatus !== 'approved') {

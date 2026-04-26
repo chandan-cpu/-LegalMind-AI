@@ -37,6 +37,10 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
+  verifyOTP: (email, otp) => api.post('/auth/verify-otp', { email, otp }),
+  sendResetOTP: (email) => api.post('/auth/reset-otp', { email }),
+  verifyResetOTP: (resetOtp, sessionToken) => api.post('/auth/validate-otp', { resetOtp, sessionToken }),
+  resetPassword: (newPassword, sessionToken) => api.post('/auth/reset-password', { newPassword, sessionToken }),
 };
 
 // ===== DOCUMENTS =====
@@ -105,6 +109,10 @@ export const lawyerAPI = {
   register: (payload) => api.post('/lawyers/auth/register', payload),
   login: (email, password) => api.post('/lawyers/auth/login', { email, password }),
   statusByEmail: (email) => api.get(`/lawyers/auth/status?email=${encodeURIComponent(email)}`),
+  verifyOTP: (email, otp) => api.post('/lawyers/auth/verify-otp', { email, otp }),
+  sendResetOTP: (email) => api.post('/lawyers/auth/reset-otp', { email }),
+  verifyResetOTP: (resetOtp, sessionToken) => api.post('/lawyers/auth/validate-otp', { resetOtp, sessionToken }),
+  resetPassword: (newPassword, sessionToken) => api.post('/lawyers/auth/reset-password', { newPassword, sessionToken }),
   listAvailable: (params = {}) => api.get('/lawyers/available', { params }),
   connect: (payload) => api.post('/lawyers/connect', payload),
   myRequests: () => api.get('/lawyers/my-requests'),

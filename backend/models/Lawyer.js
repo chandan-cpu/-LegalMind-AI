@@ -128,6 +128,14 @@ const lawyerSchema = new mongoose.Schema({
         ],
         default: [],
     },
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
+    otp: Number,
+    otpExpire: Date,
+    resetOtp: Number,
+    resetOtpExpire: Date,
 }, { timestamps: true });
 
 lawyerSchema.pre('save', async function () {

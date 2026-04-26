@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Upload, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Shield, Upload, FileText, CheckCircle, AlertCircle, X, KeyRound } from 'lucide-react';
 import { lawyerAPI } from '../api/axios';
 import { useToast } from '../components/toastContext';
 import './LawyerLogin.css';
@@ -30,6 +30,11 @@ export default function LawyerRegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // OTP Modal state
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   // After step-1 registration succeeds we store the token temporarily
   const [lawyerToken, setLawyerToken] = useState('');
@@ -70,21 +75,31 @@ export default function LawyerRegisterPage() {
     setError('');
 
     try {
-      const res = await lawyerAPI.register(form);
-      // The backend returns a token on register — store it temporarily to upload docs
-      const token = res.data?.token;
-      if (token) {
-        localStorage.setItem('legalmind_lawyer_token', token);
-        setLawyerToken(token);
-      }
-      addToast('Account created! Now upload your verification documents.', 'success');
-      setStep(2);
+      await lawyerAPI.register(form);
+      addToast('Account created! Please verify your email OTP.', 'success');
+      setShowOtpModal(true);
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed';
       setError(msg);
       addToast(msg, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setVerifyLoading(true);
+    try {
+      await lawyerAPI.verifyOTP(form.email, otp);
+      addToast('Email verified! Now upload your verification documents.', 'success');
+      setShowOtpModal(false);
+      setStep(2);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Verification failed. Invalid OTP.';
+      addToast(msg, 'error');
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -145,6 +160,7 @@ export default function LawyerRegisterPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="auth-wrapper">
       <form
         className="glass-card auth-card lawyer-register-card"
@@ -345,5 +361,39 @@ export default function LawyerRegisterPage() {
         )}
       </form>
     </div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-content glass-card popup-card">
+            <button className="modal-close" onClick={() => setShowOtpModal(false)}>
+              <X size={20} />
+            </button>
+            <div className="modal-header">
+              <Shield size={28} className="modal-icon" />
+              <h2>Verify Email</h2>
+            </div>
+            <p className="modal-subtitle">Enter the 6-digit OTP sent to <strong>{form.email}</strong></p>
+            <form onSubmit={handleVerifyOtp} className="auth-form" style={{ marginTop: '1.5rem' }}>
+              <div className="input-group">
+                <KeyRound size={18} className="input-icon" />
+                <input
+                  type="text"
+                  className="input-field input-with-icon"
+                  placeholder="Enter OTP Code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                  maxLength={6}
+                />
+              </div>
+              <button type="submit" className="gradient-btn auth-submit" disabled={verifyLoading || otp.length < 6}>
+                {verifyLoading ? 'Verifying...' : 'Verify & Continue'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { sendOTP } = require('./otpController');
 
 // @desc    Naya user register karna (Signup)
 const registerUser = async (req, res) => {
@@ -23,12 +24,8 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: "User creation failed" });
         }
 
-        res.status(201).json({
-            _id: user.id,
-            name: user.name,
-            email: user.email,
-            token: generateToken(user._id) // Account banne pe token free
-        });
+        // OTP Bhejo
+        await sendOTP(req, res);
 
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
@@ -45,6 +42,10 @@ const loginUser = async (req, res) => {
 
         // Agar user mill gaya, AUR uska password match kar gaya
         if (user && (await user.matchPassword(password))) {
+            if (!user.isVerified) {
+                return res.status(403).json({ message: "OTP not verified. Please verify your email first." });
+            }
+
             res.json({
                 _id: user.id,
                 name: user.name,

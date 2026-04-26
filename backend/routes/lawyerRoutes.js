@@ -23,9 +23,24 @@ const {
     uploadVerificationDocuments,
 } = require('../controllers/lawyerController');
 
+const {
+    sendLawyerOTP,
+    verifyLawyerOTP,
+    sendLawyerResetOTP,
+    verifyLawyerResetOTP,
+    resetLawyerPassword,
+} = require('../controllers/lawyerOtpController');
+
 router.post('/auth/register', registerLawyer);
 router.post('/auth/login', loginLawyer);
 router.get('/auth/status', getLawyerVerificationStatus);
+
+// OTP routes
+router.post('/auth/send-otp', sendLawyerOTP);
+router.post('/auth/verify-otp', verifyLawyerOTP);
+router.post('/auth/reset-otp', sendLawyerResetOTP);
+router.post('/auth/validate-otp', verifyLawyerResetOTP);
+router.post('/auth/reset-password', resetLawyerPassword);
 
 router.get('/available', listAvailableLawyers);
 

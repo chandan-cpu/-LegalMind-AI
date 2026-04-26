@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Shield, KeyRound, X } from 'lucide-react';
 import { authAPI } from '../api/axios';
 import { useToast } from '../components/toastContext';
 import './Auth.css';
@@ -11,6 +11,9 @@ export default function Register() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const { addToast } = useToast();
 
   const getPasswordStrength = () => {
@@ -41,14 +44,30 @@ export default function Register() {
     setLoading(true);
     try {
       await authAPI.register({ name: form.name, email: form.email, password: form.password });
-      addToast('Registration successful. Please login.', 'success');
-      navigate('/login');
+      addToast('OTP sent to your email. Please verify.', 'success');
+      setShowOtpModal(true);
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed. Please try again.';
       setError(message);
       addToast(message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setVerifyLoading(true);
+    try {
+      await authAPI.verifyOTP(form.email, otp);
+      addToast('Email verified successfully! You can now login.', 'success');
+      setShowOtpModal(false);
+      navigate('/login');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Verification failed. Invalid OTP.';
+      addToast(message, 'error');
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -145,6 +164,38 @@ export default function Register() {
           Already have an account? <Link to="/login">Login</Link>
         </p>
       </div>
+
+      {showOtpModal && (
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-content glass-card popup-card">
+            <button className="modal-close" onClick={() => setShowOtpModal(false)}>
+              <X size={20} />
+            </button>
+            <div className="modal-header">
+              <Shield size={28} className="modal-icon text-teal" />
+              <h2>Verify Email</h2>
+            </div>
+            <p className="modal-subtitle">Enter the 6-digit OTP sent to {form.email}</p>
+            <form onSubmit={handleVerifyOtp} className="auth-form" style={{ marginTop: '1.5rem' }}>
+              <div className="input-group">
+                <KeyRound size={18} className="input-icon" />
+                <input
+                  type="text"
+                  className="input-field input-with-icon"
+                  placeholder="Enter OTP Code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                  maxLength={6}
+                />
+              </div>
+              <button type="submit" className="gradient-btn auth-submit" disabled={verifyLoading || otp.length < 6}>
+                {verifyLoading ? 'Verifying...' : 'Verify Email'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
