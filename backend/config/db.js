@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        const uri= process.env.MONGO_URI;
+        const uri= process.env.MONGODB_URI;
         // .env file se URI utha kar connect karega
         const conn = await mongoose.connect(uri);
         console.log(`🚀 MongoDB Connected Successfully: ${conn.connection.host}`);
